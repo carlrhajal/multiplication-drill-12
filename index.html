@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Math Drills — Dark + Stats + Division + Subtraction</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0b1220">
+  <title>Math Drills — Dark + Stats + Division (Mobile)</title>
   <style>
     :root{
       --bg:#0b1220; --surface:#111a2b; --muted:#1a2440;
@@ -14,43 +15,73 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0; padding:24px; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-         background:var(--bg); color:var(--text); display:flex; flex-direction:column; align-items:center; gap:16px;}
-    h1{margin:0 0 4px; font-size:1.6rem; letter-spacing:.2px}
-    .sub{color:var(--subtle); font-size:.95rem}
+    body{
+      margin:0; padding:24px;
+      padding-left: max(24px, env(safe-area-inset-left));
+      padding-right:max(24px, env(safe-area-inset-right));
+      padding-top: max(24px, env(safe-area-inset-top));
+      padding-bottom:max(24px, env(safe-area-inset-bottom));
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg); color:var(--text);
+      display:flex; flex-direction:column; align-items:center; gap:16px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    h1{margin:0 0 4px; font-size:clamp(1.25rem, 3.8vw, 1.6rem); letter-spacing:.2px}
+    .sub{color:var(--subtle); font-size:clamp(.9rem, 2.8vw, .95rem)}
 
-    .topbar{width:100%; max-width:1000px; display:flex; justify-content:space-between; align-items:center}
-    .ghost{background:transparent; color:var(--text); border:1px solid var(--muted);
-           padding:.5rem .8rem; border-radius:999px; cursor:pointer;}
+    button,input,select{touch-action:manipulation}
+
+    /* top bar */
+    .topbar{width:100%; max-width:1000px; display:flex; justify-content:space-between; align-items:center; position:relative}
+    .ghost{
+      background:transparent; color:var(--text); border:1px solid var(--muted);
+      padding:.6rem .9rem; border-radius:999px; cursor:pointer; min-height:48px;
+    }
     .ghost:hover{background:var(--muted)}
 
+    /* panels */
     .panel{width:100%; max-width:1000px; background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px}
-    #menu h2,#settings h2{margin:0 0 .6rem}
-    .mode-row{display:flex; gap:12px; align-items:center; margin:.25rem 0 .75rem}
+    #menu h2,#settings h2{margin:0 0 .6rem; font-size:clamp(1.05rem, 3.8vw, 1.2rem)}
+    .mode-row{display:flex; gap:12px; align-items:center; margin:.25rem 0 .75rem; flex-wrap:wrap}
+    .mode-row label{display:flex; gap:.45rem; align-items:center; padding:.25rem .5rem; border-radius:999px; background:#0f1a30}
     .badge{background:var(--muted); color:var(--text); border-radius:999px; padding:.25rem .6rem; font-size:.9rem}
 
-    .grid{display:grid; gap:.6rem; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));}
-    .grid button,#back,.pill,.danger{
-      border:0; border-radius:12px; padding:.7rem 1rem; cursor:pointer; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,.25);
+    .grid{
+      display:grid; gap:.6rem;
+      grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
     }
-    .grid button,#back,.pill{ background:var(--blue); color:#fff; }
-    .grid button:hover,#back:hover,.pill:hover{ background:var(--blue-d); }
+    .grid button,#back,.pill,.danger,#submitBtn{
+      border:0; border-radius:12px; padding:.85rem 1rem; cursor:pointer; font-weight:600;
+      box-shadow:0 6px 18px rgba(0,0,0,.25); min-height:48px;
+    }
+    .grid button,#back,.pill,#submitBtn{ background:var(--blue); color:#fff; }
+    .grid button:hover,#back:hover,.pill:hover,#submitBtn:hover{ background:var(--blue-d); }
     .danger{ background:#b91c1c; color:#fff } .danger:hover{ background:#991b1b }
 
     #quiz{max-width:720px; margin-inline:auto;}
     #hud{display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin:.25rem 0 .5rem}
     .pill{background:#0f1a30}
-    #question{background:var(--muted); border-radius:var(--radius); padding:14px; font-size:1.9rem; text-align:center; margin:.6rem 0;}
-    #answer{width:260px; padding:.6rem .75rem; font-size:1.2rem; text-align:center; border:2px solid #2a3558; border-radius:12px; background:#0e1730; color:var(--text); box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);}
+    #question{
+      background:var(--muted); border-radius:var(--radius); padding:14px;
+      font-size:clamp(1.4rem, 7vw, 1.9rem); text-align:center; margin:.6rem 0;
+    }
+    #answer{
+      width:min(420px, 100%); padding:1rem .9rem; font-size:clamp(1.1rem, 5.5vw, 1.25rem);
+      text-align:center; border:2px solid #2a3558; border-radius:12px; background:#0e1730; color:var(--text);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03); min-height:52px;
+    }
     #answer:disabled{opacity:.7}
-    #feedback{min-height:1.4rem; margin:.5rem 0 0; font-size:1.1rem}
+    #feedback{min-height:1.4rem; margin:.6rem 0 0; font-size:clamp(1rem, 4.5vw, 1.1rem)}
     .correct{color:var(--good)} .wrong{color:var(--bad)}
-    .row{display:flex; gap:.6rem; justify-content:center; margin-top:.8rem}
+    .row{display:flex; gap:.6rem; justify-content:center; margin-top:.8rem; flex-wrap:wrap}
     .visually-hidden{position:absolute; left:-9999px}
 
-    #settings .controls{display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:.5rem 0 .75rem}
-    select{background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.4rem .6rem;}
-    table{width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.95rem}
+    /* settings */
+    #settings .controls{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin:.5rem 0 .75rem}
+    select{
+      background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.6rem .7rem; min-height:44px;
+    }
+    table{width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.95rem; overflow:auto}
     th,td{padding:.55rem .6rem; text-align:left; border-bottom:1px solid #1e2a4a}
     th{color:#b9c2d0; font-weight:600}
     tbody tr:hover{background:#0f1934}
@@ -58,6 +89,19 @@
     .small{font-size:.85rem; color:#c7ceda}
     .right{text-align:right}
     .drilltag{background:#0f1a30; padding:.15rem .5rem; border-radius:999px; font-size:.8rem}
+
+    /* Mobile tweaks */
+    #submitBtn{display:none}
+    @media (max-width: 640px){
+      body{padding:16px; padding-bottom:max(16px, env(safe-area-inset-bottom));}
+      .panel{padding:14px}
+      .grid{grid-template-columns:1fr}
+      #hud{position:sticky; top:calc(56px + env(safe-area-inset-top)); z-index:5}
+      .topbar{position:sticky; top:0; z-index:6}
+      #answer{width:100%}
+      #submitBtn{display:inline-block; width:100%; margin-top:.6rem}
+      #back{width:100%}
+    }
   </style>
 </head>
 <body>
@@ -111,8 +155,9 @@
     <div id="question"></div>
     <label for="answer" class="visually-hidden">Answer</label>
     <div style="display:flex; justify-content:center;">
-      <input id="answer" type="text" inputmode="decimal" autocomplete="off"/>
+      <input id="answer" type="text" inputmode="decimal" enterkeyhint="go" autocapitalize="off" autocomplete="off" autocorrect="off"/>
     </div>
+    <button id="submitBtn" class="pill" aria-label="Check answer (mobile)">Check / Next</button>
     <div id="feedback" aria-live="polite"></div>
     <div id="endpanel"></div>
 
@@ -260,7 +305,7 @@
       return {items, weights};
     }
 
-    // Mixed (no addition) — includes divisions, etc. (no add/sub by design)
+    // Mixed (no addition)
     function buildMixedBank(){
       const keys=['mult12','mult10','mult15','div','divZeros','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
       const items=[], weights=new Map();
@@ -286,7 +331,7 @@
       bank.weights.set(id, ok ? Math.max(0.25, w-0.2) : Math.min(5, w+1));
     };
 
-    // Two-digit addition (existing open-set generator)
+    // Two-digit addition (open-set generator)
     const addBucket=[];
     const pickAdd=()=>{
       if(addBucket.length && Math.random()<0.6){
@@ -304,14 +349,14 @@
               else addBucket.push({key:item.id, a:item.a, b:item.b, count:2}); }
     }
 
-    // NEW: Two-digit subtraction (open-set generator)
+    // Two-digit subtraction (open-set generator)
     const subBucket=[];
     const pickSub=()=>{
       if(subBucket.length && Math.random()<0.6){
         const total=subBucket.reduce((s,x)=>s+x.count,0);
         let r=Math.random()*total;
-        for(const m of subBucket){ 
-          r-=m.count; 
+        for(const m of subBucket){
+          r-=m.count;
           if(r<=0) return {id:m.key, text:`${m.a} − ${m.b}`, ans:m.a-m.b, type:'int', a:m.a, b:m.b, src:'sub2'};
         }
       }
@@ -333,6 +378,7 @@
           hudScore=$('hudScore'), scoreEl=$('score'), hudBest=$('hudBest'), bestEl=$('best'),
           bestBadge=$('bestBadge'), bestMenu=$('bestMenu');
     const qEl=$('question'), aEl=$('answer'), fb=$('feedback'), endpanel=$('endpanel'), back=$('back');
+    const submitBtn=$('submitBtn');
     const openSettingsBtn=$('openSettings'), closeSettingsBtn=$('closeSettings'),
           clearStatsBtn=$('clearStats'), clearScoresBtn=$('clearScores'),
           fltDrill=$('fltDrill'), fltSort=$('fltSort'), statsContainer=$('statsContainer');
@@ -405,7 +451,7 @@
       awaiting=false;
       current=pickQuestion();
       qEl.textContent=current.text;
-      aEl.disabled=false; aEl.value=''; aEl.focus();
+      aEl.disabled=false; aEl.value=''; aEl.focus({preventScroll:true});
       fb.textContent=''; fb.className='';
     }
 
@@ -456,6 +502,8 @@
     }
 
     aEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); } });
+    submitBtn.addEventListener('click', (e)=>{ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); });
+
     back.addEventListener('click', ()=>{
       if(tick){ clearInterval(tick); tick=null; }
       quiz.hidden=true; menu.hidden=false; hud.hidden=true;
