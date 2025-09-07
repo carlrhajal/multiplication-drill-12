@@ -2,37 +2,106 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Math Drills (Adaptive + Sprint)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Math Drills — Dark + Stats</title>
   <style>
-    :root { --blue:#3b82f6; --blue-d:#2563eb; --bg:#f8fafc; --good:#0ea34b; --bad:#dc2626; }
+    :root{
+      --bg:#0b1220;        /* page background */
+      --surface:#111a2b;   /* cards/surfaces */
+      --muted:#1a2440;
+      --text:#e5e7eb;
+      --subtle:#aeb6c2;
+      --blue:#3b82f6;
+      --blue-d:#2563eb;
+      --good:#16a34a;
+      --bad:#ef4444;
+      --shadow:0 10px 28px rgba(0,0,0,.35);
+      --radius:14px;
+    }
     *{box-sizing:border-box}
-    body{margin:0;padding:2rem;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:#0f172a;display:flex;flex-direction:column;align-items:center}
-    h1{margin:0 0 1rem}
-    #menu{width:100%;max-width:900px}
-    #menu h2{text-align:center;margin:.25rem 0 .5rem}
-    .mode-row{display:flex;gap:1rem;justify-content:center;align-items:center;margin:.5rem 0 1rem}
-    .badge{background:#e2e8f0;color:#0f172a;border-radius:999px;padding:.25rem .6rem;font-size:.9rem}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem}
-    .grid button,#back,.pill{border:0;border-radius:10px;padding:.7rem 1rem;cursor:pointer;background:var(--blue);color:#fff;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.08)}
-    .grid button:hover,#back:hover,.pill:hover{background:var(--blue-d)}
-    #quiz{width:100%;max-width:620px;text-align:center}
-    #hud{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-bottom:.5rem}
-    .pill{background:#0f172a}
-    #question{font-size:1.9rem;margin:1rem 0}
-    #answer{width:260px;padding:.6rem .75rem;font-size:1.2rem;text-align:center;border:2px solid #cbd5e1;border-radius:10px;background:#fff}
-    #answer:disabled{background:#e2e8f0}
-    #feedback{min-height:1.6rem;margin:.5rem 0 0;font-size:1.2rem}
+    html,body{height:100%}
+    body{
+      margin:0; padding:24px;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:var(--bg); color:var(--text);
+      display:flex; flex-direction:column; align-items:center; gap:16px;
+    }
+    h1{margin:0 0 4px; font-size:1.6rem; letter-spacing:.2px}
+    .sub{color:var(--subtle); font-size:.95rem}
+
+    /* top bar */
+    .topbar{width:100%; max-width:1000px; display:flex; justify-content:space-between; align-items:center}
+    .ghost{
+      background:transparent; color:var(--text); border:1px solid var(--muted);
+      padding:.5rem .8rem; border-radius:999px; cursor:pointer;
+    }
+    .ghost:hover{background:var(--muted)}
+
+    /* panels */
+    .panel{width:100%; max-width:1000px; background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px}
+    #menu h2, #settings h2{margin:0 0 .6rem}
+    .mode-row{display:flex; gap:12px; align-items:center; margin:.25rem 0 .75rem}
+    .badge{background:var(--muted); color:var(--text); border-radius:999px; padding:.25rem .6rem; font-size:.9rem}
+
+    .grid{
+      display:grid; gap:.6rem;
+      grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
+    }
+    .grid button, #back, .pill, .danger{
+      border:0; border-radius:12px; padding:.7rem 1rem; cursor:pointer; font-weight:600;
+      box-shadow:0 6px 18px rgba(0,0,0,.25);
+    }
+    .grid button, #back, .pill{ background:var(--blue); color:#fff; }
+    .grid button:hover, #back:hover, .pill:hover{ background:var(--blue-d); }
+    .danger{ background:#b91c1c; color:#fff }
+    .danger:hover{ background:#991b1b }
+
+    #quiz{max-width:720px; margin-inline:auto;}
+    #hud{display:flex; gap:.6rem; justify-content:center; flex-wrap:wrap; margin:.25rem 0 .5rem}
+    .pill{background:#0f1a30}
+    #question{
+      background:var(--muted); border-radius:var(--radius); padding:14px;
+      font-size:1.9rem; text-align:center; margin:.6rem 0;
+    }
+    #answer{
+      width:260px; padding:.6rem .75rem; font-size:1.2rem; text-align:center;
+      border:2px solid #2a3558; border-radius:12px; background:#0e1730; color:var(--text);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+    #answer:disabled{opacity:.7}
+    #feedback{min-height:1.4rem; margin:.5rem 0 0; font-size:1.1rem}
     .correct{color:var(--good)} .wrong{color:var(--bad)}
-    .row{display:flex;gap:.6rem;justify-content:center;margin-top:1rem}
-    .visually-hidden{position:absolute;left:-9999px}
-    #endpanel{margin-top:1rem}
+    .row{display:flex; gap:.6rem; justify-content:center; margin-top:.8rem}
+    .visually-hidden{position:absolute; left:-9999px}
+
+    /* settings */
+    #settings .controls{display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; margin:.5rem 0 .75rem}
+    select{
+      background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.4rem .6rem;
+    }
+    table{width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.95rem}
+    th,td{padding:.55rem .6rem; text-align:left; border-bottom:1px solid #1e2a4a}
+    th{color:#b9c2d0; font-weight:600}
+    tbody tr:hover{background:#0f1934}
+    .mono{font-variant-numeric:tabular-nums}
+    .small{font-size:.85rem; color:#c7ceda}
+    .right{text-align:right}
+    .drilltag{background:#0f1a30; padding:.15rem .5rem; border-radius:999px; font-size:.8rem}
   </style>
 </head>
 <body>
-  <h1>Math Drills</h1>
+  <div class="topbar panel" style="display:flex; gap:12px; align-items:center;">
+    <div>
+      <h1>Math Drills</h1>
+      <div class="sub">Dark mode + adaptive practice + sprint + stats</div>
+    </div>
+    <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
+      <button id="openSettings" class="ghost">⚙️ Settings & Stats</button>
+    </div>
+  </div>
 
-  <div id="menu">
+  <!-- MENU -->
+  <div id="menu" class="panel">
     <h2>Choose a drill</h2>
     <div class="mode-row">
       <label><input type="radio" name="mode" value="practice" checked> Practice</label>
@@ -56,31 +125,74 @@
     </div>
   </div>
 
-  <div id="quiz" hidden>
+  <!-- QUIZ -->
+  <div id="quiz" class="panel" hidden>
     <div id="hud" hidden>
       <span id="hudDrill" class="pill">—</span>
       <span id="hudTimer" class="pill" hidden>⏱️ <b id="tLeft">60</b>s</span>
       <span id="hudScore" class="pill" hidden>Score: <b id="score">0</b></span>
       <span id="hudBest" class="pill" hidden>Best: <b id="best">0</b></span>
     </div>
+
     <div id="question"></div>
     <label for="answer" class="visually-hidden">Answer</label>
-    <input id="answer" type="text" inputmode="decimal" autocomplete="off" />
+    <div style="display:flex; justify-content:center;">
+      <input id="answer" type="text" inputmode="decimal" autocomplete="off"/>
+    </div>
     <div id="feedback" aria-live="polite"></div>
     <div id="endpanel"></div>
+
     <div class="row">
       <button id="back">Back</button>
     </div>
   </div>
 
-  <script>
-    // ===== Helpers & constants =====
-    const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
-    const SPRINT_SECONDS = 60;
-    const SIMPLE_BIAS = 0.35; // lower -> rarer; set 0 to eliminate easy facts
-    const isSimple = (a,b) => (a<=3 || b<=3 || a===5 || b===5 || a===10 || b===10);
+  <!-- SETTINGS / STATS -->
+  <div id="settings" class="panel" hidden>
+    <h2>Settings & Stats</h2>
+    <div class="controls">
+      <label>Filter drill:
+        <select id="fltDrill">
+          <option value="">All</option>
+          <option value="mixed">Mixed</option>
+          <option value="mult12">12 ×</option>
+          <option value="mult10">Mult 1–10</option>
+          <option value="mult15">Mult 1–15</option>
+          <option value="add2">Addition</option>
+          <option value="squares">Squares</option>
+          <option value="cubes">Cubes</option>
+          <option value="roots">Roots</option>
+          <option value="exp2">2^</option>
+          <option value="exp3">3^</option>
+          <option value="exp4">4^</option>
+          <option value="exp5">5^</option>
+          <option value="decimals">Decimals</option>
+        </select>
+      </label>
+      <label>Sort by:
+        <select id="fltSort">
+          <option value="wrongs">Most wrongs</option>
+          <option value="rate">Lowest accuracy</option>
+          <option value="recent">Most recent miss</option>
+          <option value="attempts">Most attempts</option>
+        </select>
+      </label>
+      <button id="clearStats" class="danger">Clear mistake stats</button>
+      <button id="clearScores" class="ghost">Clear high scores</button>
+      <button id="closeSettings" class="ghost" style="margin-left:auto">Back to menu</button>
+    </div>
+    <div id="statsContainer" class="tablewrap">
+      <!-- table inserted here -->
+    </div>
+  </div>
 
-    // Fraction list (for decimals)
+  <script>
+    /*************** Helpers & constants ***************/
+    const rand=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+    const SPRINT_SECONDS=60;
+    const SIMPLE_BIAS=0.35; // lower => rarer easy facts
+    const isSimple=(a,b)=> (a<=3||b<=3||a===5||b===5||a===10||b===10);
+
     const FRACTIONS=[];
     for(let i=1;i<5;i++) FRACTIONS.push([i,5]);
     for(let i=1;i<6;i++) FRACTIONS.push([i,6]);
@@ -88,28 +200,72 @@
     for(let i=1;i<8;i++) FRACTIONS.push([i,8]);
     [[1,9],[1,11],[1,12],[1,16],[1,32]].forEach(f=>FRACTIONS.push(f));
 
-    // ===== Build finite banks =====
+    const el = id => document.getElementById(id);
+
+    function fmtAgo(ts){
+      if(!ts) return '—';
+      const s=Math.floor((Date.now()-ts)/1000);
+      if(s<60) return s+'s ago';
+      const m=Math.floor(s/60); if(m<60) return m+'m ago';
+      const h=Math.floor(m/60); if(h<24) return h+'h ago';
+      const d=Math.floor(h/24); return d+'d ago';
+    }
+    function pct(a,b){
+      if(!b) return '—';
+      return Math.round((a/b)*100)+'%';
+    }
+
+    /*************** Mistake logging (persistent) ***************/
+    // Store per item key: {text, drill, wrongs, attempts, lastMiss}
+    const MKEY='mistakes_v1';
+    function loadMistakes(){ try{ return JSON.parse(localStorage.getItem(MKEY)||'{}'); }catch{ return {}; } }
+    function saveMistakes(obj){ localStorage.setItem(MKEY, JSON.stringify(obj)); }
+    function recordAttempt(drill,item,ok){
+      // prefer item.src (underlying drill) when mixed mode
+      const base = item.src || drill;
+      const idKey = `${base}|${item.id}`;
+      const data = loadMistakes();
+      const row = data[idKey] || {text:item.text, drill:base, wrongs:0, attempts:0, lastMiss:0};
+      row.attempts++;
+      if(!ok){ row.wrongs++; row.lastMiss=Date.now(); }
+      row.text = item.text; // keep freshest label
+      data[idKey]=row;
+      saveMistakes(data);
+    }
+    function clearMistakeStats(){ localStorage.removeItem(MKEY); }
+
+    /*************** High scores ***************/
+    const hiscoreKey = drill => `hiscore_${drill}`;
+    const getBest = drill => parseInt(localStorage.getItem(hiscoreKey(drill))||'0',10);
+    const setBest = (drill,val) => localStorage.setItem(hiscoreKey(drill), String(val));
+    function clearScores(){
+      Object.keys(localStorage).forEach(k=>{
+        if(k.startsWith('hiscore_')) localStorage.removeItem(k);
+      });
+    }
+
+    /*************** Banks ***************/
     function buildBank(key){
       const items=[], weights=new Map();
       const add=(id,text,ans,type='int',w=1)=>{ items.push({id,text,ans,type}); weights.set(id,w); };
 
       if(key==='mult12'){
         for(let b=1;b<=15;b++){
-          const w = (b===1||b===2||b===5||b===10)?0.6:1;
+          const w=(b===1||b===2||b===5||b===10)?0.6:1;
           add(`12x${b}`,`12 × ${b}`,12*b,'int',w);
         }
       }
       if(key==='mult10' || key==='mult15'){
-        const N = key==='mult10'?10:15;
+        const N=(key==='mult10'?10:15);
         for(let a=2;a<=N;a++){
           for(let b=2;b<=N;b++){
-            const w = isSimple(a,b) ? SIMPLE_BIAS : 1;
-            add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w); // exclude ×1 by starting at 2
+            const w=isSimple(a,b)?SIMPLE_BIAS:1;
+            add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w);
           }
         }
       }
-      if(key==='squares'){ for(let n=1;n<=15;n++) add(`sq${n}`,`${n}²`,n*n,'int'); } // stop at 15²
-      if(key==='cubes'){ for(let n=1;n<=10;n++) add(`cu${n}`,`${n}³`,n*n*n,'int'); } // stop at 10³
+      if(key==='squares'){ for(let n=1;n<=15;n++) add(`sq${n}`,`${n}²`,n*n,'int'); }
+      if(key==='cubes'){ for(let n=1;n<=10;n++) add(`cu${n}`,`${n}³`,n*n*n,'int'); }
       if(key==='roots'){ [2,3,5].forEach(r=>add(`r${r}`,`√${r} (3 dp)`,parseFloat(Math.sqrt(r).toFixed(3)),'float')); }
       if(key==='exp2'){ for(let e=1;e<=10;e++) add(`2^${e}`,`2^${e}`,2**e,'int'); }
       if(key==='exp3'){ for(let e=1;e<=5;e++) add(`3^${e}`,`3^${e}`,3**e,'int'); }
@@ -117,18 +273,17 @@
       if(key==='exp5'){ for(let e=1;e<=5;e++) add(`5^${e}`,`5^${e}`,5**e,'int'); }
       if(key==='decimals'){ for(const [n,d] of FRACTIONS) add(`${n}/${d}`,`${n}/${d} (3 dp)`,parseFloat((n/d).toFixed(3)),'float'); }
 
-      return {items,weights};
+      return {items, weights};
     }
 
-    // Mixed (no addition): merge multiple banks
     function buildMixedBank(){
       const keys=['mult12','mult10','mult15','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
       const items=[], weights=new Map();
       for(const k of keys){
         const b=buildBank(k);
         for(const it of b.items){
-          const id = `${k}:${it.id}`;
-          items.push({id,text:it.text,ans:it.ans,type:it.type});
+          const id=`${k}:${it.id}`;
+          items.push({id, text:it.text, ans:it.ans, type:it.type, src:k});
           weights.set(id, b.weights.get(it.id));
         }
       }
@@ -144,134 +299,106 @@
       }
       return bank.items[bank.items.length-1];
     }
-
-    function updateWeight(bank,id,correct){
+    function updateWeight(bank,id,ok){
       const w=bank.weights.get(id) ?? 1;
-      if(correct) bank.weights.set(id, Math.max(0.25, w-0.2));
-      else        bank.weights.set(id, Math.min(5,     w+1));
+      bank.weights.set(id, ok ? Math.max(0.25, w-0.2) : Math.min(5, w+1));
     }
 
-    // Two-digit addition: open set + mistake bucket (still available as its own drill)
+    // Two-digit addition (open set + mistake bucket)
     const addBucket=[];
     function pickAdd(){
       if(addBucket.length && Math.random()<0.6){
-        const total = addBucket.reduce((s,x)=>s+x.count,0);
+        const total=addBucket.reduce((s,x)=>s+x.count,0);
         let r=Math.random()*total;
-        for(const m of addBucket){ r-=m.count; if(r<=0) return {id:m.key,text:`${m.a} + ${m.b}`,ans:m.a+m.b,type:'int',a:m.a,b:m.b}; }
+        for(const m of addBucket){ r-=m.count; if(r<=0) return {id:m.key, text:`${m.a} + ${m.b}`, ans:m.a+m.b, type:'int', a:m.a, b:m.b, src:'add2' }; }
       }
       const a=rand(10,99), b=rand(10,99);
-      return {id:`${a}+${b}`,text:`${a} + ${b}`,ans:a+b,type:'int',a,b};
+      return {id:`${a}+${b}`, text:`${a} + ${b}`, ans:a+b, type:'int', a, b, src:'add2'};
     }
     function recordAddResult(item,ok){
       const i=addBucket.findIndex(x=>x.key===item.id);
       if(ok){ if(i>-1){ addBucket[i].count--; if(addBucket[i].count<=0) addBucket.splice(i,1);} }
-      else  { if(i>-1) addBucket[i].count=Math.min(5,addBucket[i].count+1);
-              else addBucket.push({key:item.id,a:item.a,b:item.b,count:2}); }
+      else  { if(i>-1) addBucket[i].count=Math.min(5, addBucket[i].count+1);
+              else addBucket.push({key:item.id, a:item.a, b:item.b, count:2}); }
     }
 
-    // ===== UI state =====
-    const menu=document.getElementById('menu');
-    const quiz=document.getElementById('quiz');
-    const hud=document.getElementById('hud');
-    const hudDrill=document.getElementById('hudDrill');
-    const hudTimer=document.getElementById('hudTimer');
-    const tLeftEl=document.getElementById('tLeft');
-    const hudScore=document.getElementById('hudScore');
-    const hudBest=document.getElementById('hudBest');
-    const scoreEl=document.getElementById('score');
-    const bestEl=document.getElementById('best');
-    const bestBadge=document.getElementById('bestBadge');
-    const bestMenu=document.getElementById('bestMenu');
+    /*************** UI state ***************/
+    const menu=el('menu'), quiz=el('quiz'), settings=el('settings');
+    const hud=el('hud'), hudDrill=el('hudDrill'), hudTimer=el('hudTimer'), tLeftEl=el('tLeft'),
+          hudScore=el('hudScore'), scoreEl=el('score'), hudBest=el('hudBest'), bestEl=el('best'),
+          bestBadge=el('bestBadge'), bestMenu=el('bestMenu');
 
-    const qEl=document.getElementById('question');
-    const aEl=document.getElementById('answer');
-    const fb=document.getElementById('feedback');
-    const endpanel=document.getElementById('endpanel');
-    const back=document.getElementById('back');
+    const qEl=el('question'), aEl=el('answer'), fb=el('feedback'), endpanel=el('endpanel');
+    const back=el('back');
+    const openSettingsBtn=el('openSettings'), closeSettingsBtn=el('closeSettings'),
+          clearStatsBtn=el('clearStats'), clearScoresBtn=el('clearScores'),
+          fltDrill=el('fltDrill'), fltSort=el('fltSort'), statsContainer=el('statsContainer');
 
-    const modeRadios=[...document.querySelectorAll("input[name='mode']")];
-    const getMode=()=> modeRadios.find(r=>r.checked)?.value || 'practice';
+    const radios=[...document.querySelectorAll("input[name='mode']")];
+    const getMode=()=> radios.find(r=>r.checked)?.value || 'practice';
 
-    function storageKey(drill){ return `hiscore_${drill}`; }
-    function getBest(drill){ return parseInt(localStorage.getItem(storageKey(drill))||'0',10); }
-    function setBest(drill,val){ localStorage.setItem(storageKey(drill), String(val)); }
+    let drill=null, bank=null, current=null, awaiting=false, isSprint=false;
+    let timeLeft=SPRINT_SECONDS, tick=null, score=0, lastHoverDrill=null;
 
-    // show best badge when Sprint selected
-    function refreshMenuBestFor(drill){
-      if(getMode()==='sprint' && drill){
-        bestBadge.hidden=false; bestMenu.textContent=getBest(drill);
-      } else bestBadge.hidden=true;
+    function refreshMenuBestFor(d){
+      if(getMode()==='sprint' && d){ bestBadge.hidden=false; bestMenu.textContent=getBest(d); }
+      else bestBadge.hidden=true;
     }
-    modeRadios.forEach(r=>r.addEventListener('change',()=>refreshMenuBestFor(lastHoverDrill)));
+    radios.forEach(r=>r.addEventListener('change',()=>refreshMenuBestFor(lastHoverDrill)));
 
-    let lastHoverDrill=null;
     document.querySelectorAll('#menu [data-drill]').forEach(btn=>{
       btn.addEventListener('mouseenter',()=>{ lastHoverDrill=btn.dataset.drill; refreshMenuBestFor(lastHoverDrill); });
       btn.addEventListener('focus',()=>{ lastHoverDrill=btn.dataset.drill; refreshMenuBestFor(lastHoverDrill); });
       btn.addEventListener('click',()=>start(btn.dataset.drill));
     });
 
-    let drill=null;        // current drill key
-    let bank=null;         // bank for finite drills
-    let current=null;      // current question
-    let awaiting=false;    // guard
-    let isSprint=false;
-    let timeLeft=SPRINT_SECONDS;
-    let tick=null;
-    let score=0;
+    openSettingsBtn.addEventListener('click',()=>{ menu.hidden=true; quiz.hidden=true; settings.hidden=false; renderStats(); });
+    closeSettingsBtn.addEventListener('click',()=>{ settings.hidden=true; menu.hidden=false; });
+    clearStatsBtn.addEventListener('click',()=>{ clearMistakeStats(); renderStats(); });
+    clearScoresBtn.addEventListener('click',()=>{ clearScores(); renderStats(); refreshMenuBestFor(lastHoverDrill); });
+    fltDrill.addEventListener('change',renderStats);
+    fltSort.addEventListener('change',renderStats);
 
-    function start(selected){
-      drill=selected;
-      isSprint = (getMode()==='sprint');
+    function start(sel){
+      drill=sel; isSprint=(getMode()==='sprint');
+      if(drill==='add2') bank=null;
+      else if(drill==='mixed') bank=buildMixedBank();
+      else bank=buildBank(drill);
 
-      // Build bank / generator
-      if(drill==='add2'){ bank=null; }
-      else if(drill==='mixed'){ bank=buildMixedBank(); }
-      else { bank=buildBank(drill); }
+      menu.hidden=true; settings.hidden=true; quiz.hidden=false; endpanel.innerHTML='';
+      fb.textContent=''; fb.className=''; hud.hidden=false; hudDrill.textContent=labelFor(drill);
 
-      // UI on
-      menu.hidden=true; quiz.hidden=false; endpanel.innerHTML=''; fb.textContent=''; fb.className='';
-      hud.hidden=false; hudDrill.textContent=labelFor(drill);
-
-      // Sprint HUD
       if(isSprint){
         score=0; scoreEl.textContent='0';
         hudTimer.hidden=false; hudScore.hidden=false; hudBest.hidden=false;
         timeLeft=SPRINT_SECONDS; tLeftEl.textContent=String(timeLeft);
         bestEl.textContent=String(getBest(drill));
         if(tick) clearInterval(tick);
-        tick=setInterval(()=>{
-          timeLeft--; tLeftEl.textContent=String(timeLeft);
-          if(timeLeft<=0){ finishSprint(); }
-        }, 1000);
+        tick=setInterval(()=>{ timeLeft--; tLeftEl.textContent=String(timeLeft); if(timeLeft<=0){ finishSprint(); }},1000);
       }else{
         hudTimer.hidden=true; hudScore.hidden=true; hudBest.hidden=true;
-        if(tick) { clearInterval(tick); tick=null; }
+        if(tick){ clearInterval(tick); tick=null; }
       }
-
       ask();
     }
 
     function labelFor(k){
-      const map={
-        mixed:'Mixed (no addition)', mult12:'12 × (1–15)', mult10:'Mult 1–10',
+      const map={ mixed:'Mixed (no addition)', mult12:'12 × (1–15)', mult10:'Mult 1–10',
         mult15:'Mult 1–15', add2:'Two-digit addition', squares:'Perfect squares',
         cubes:'Perfect cubes', roots:'Roots (√2,√3,√5)', exp2:'Powers of 2',
-        exp3:'Powers of 3', exp4:'Powers of 4', exp5:'Powers of 5', decimals:'Fractions → decimals'
-      };
+        exp3:'Powers of 3', exp4:'Powers of 4', exp5:'Powers of 5', decimals:'Fractions → decimals' };
       return map[k]||k;
     }
 
     function pickQuestion(){
       if(drill==='add2') return pickAdd();
-      // finite sets (including mixed)
-      return pickWeighted(bank);
+      return pickWeighted(bank); // includes mixed
     }
 
     function ask(){
       awaiting=false;
-      current = pickQuestion();
-      qEl.textContent = current.text;
+      current=pickQuestion();
+      qEl.textContent=current.text;
       aEl.disabled=false; aEl.value=''; aEl.focus();
       fb.textContent=''; fb.className='';
     }
@@ -288,55 +415,105 @@
         if(!Number.isNaN(user) && user===current.ans) ok=true;
       }
 
-      if(ok){ fb.textContent='✅'; fb.className='correct'; }
-      else  { fb.textContent = `❌ (${current.type==='float'?current.ans.toFixed(3):String(current.ans)})`; fb.className='wrong'; }
-
-      // adapt
+      // log + adapt
+      recordAttempt(drill,current,ok);
       if(drill==='add2') recordAddResult(current,ok);
       else updateWeight(bank,current.id,ok);
 
-      // Sprint scoring & immediate next
       if(isSprint){
         if(ok){ score++; scoreEl.textContent=String(score); }
-        // NO DELAY — move immediately
-        ask();
-        return;
+        // Sprint: NO delay
+        ask(); return;
       }
 
-      // Practice: short auto-advance (kept small)
-      aEl.disabled=true;
-      awaiting=true;
+      // Practice: short feedback + auto-advance
+      fb.textContent = ok ? '✅ Correct!' : `❌ (${current.type==='float'?current.ans.toFixed(3):String(current.ans)})`;
+      fb.className = ok ? 'correct' : 'wrong';
+      aEl.disabled=true; awaiting=true;
       setTimeout(()=>{ awaiting=false; ask(); }, ok?650:1100);
     }
 
     function finishSprint(){
       if(tick){ clearInterval(tick); tick=null; }
       aEl.disabled=true;
-      // save best
-      const best=getBest(drill);
-      if(score>best){ setBest(drill,score); }
+      const prev=getBest(drill);
+      if(score>prev) setBest(drill,score);
       bestEl.textContent=String(getBest(drill));
       endpanel.innerHTML = `
-        <div class="row" style="margin-top:.5rem;gap:.5rem;flex-wrap:wrap;justify-content:center">
-          <span class="badge">Time! Score: <b>${score}</b> — Best: <b>${getBest(drill)}</b>${score>best?' 🎉':''}</span>
+        <div class="row" style="flex-wrap:wrap; justify-content:center">
+          <span class="badge">Time! Score: <b>${score}</b> — Best: <b>${getBest(drill)}</b>${score>prev?' 🎉':''}</span>
           <button class="pill" id="again">Play Again</button>
         </div>`;
-      document.getElementById('again').addEventListener('click', ()=> start(drill));
+      document.getElementById('again').addEventListener('click',()=>start(drill));
     }
 
-    // Enter submits (practice: auto-advance with small delay; sprint: instant next)
-    aEl.addEventListener('keydown', e=>{
-      if(e.key==='Enter'){ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); }
-    });
-
+    aEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); } });
     back.addEventListener('click', ()=>{
       if(tick){ clearInterval(tick); tick=null; }
       quiz.hidden=true; menu.hidden=false; hud.hidden=true;
       aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
-      // refresh best badge for current hover/selection
       refreshMenuBestFor(drill);
       drill=null; bank=null; current=null; score=0;
     });
+
+    /*************** Settings render ***************/
+    function renderStats(){
+      const data=loadMistakes();
+      const rows=Object.entries(data).map(([key,val])=>({key, ...val}));
+      const flt=fltDrill.value;
+      let lst = rows.filter(r=> !flt || r.drill===flt);
+
+      const sort=fltSort.value;
+      lst.sort((a,b)=>{
+        if(sort==='wrongs') return (b.wrongs||0)-(a.wrongs||0);
+        if(sort==='rate'){
+          const ar = a.attempts? a.wrongs/a.attempts : 0;
+          const br = b.attempts? b.wrongs/b.attempts : 0;
+          return br - ar; // lowest accuracy first => highest wrong rate first
+        }
+        if(sort==='recent') return (b.lastMiss||0)-(a.lastMiss||0);
+        if(sort==='attempts') return (b.attempts||0)-(a.attempts||0);
+        return 0;
+      });
+
+      const top = lst.slice(0,50); // cap list
+      const table = `
+        <table>
+          <thead>
+            <tr>
+              <th>Drill</th>
+              <th>Question</th>
+              <th class="right">Wrongs</th>
+              <th class="right">Attempts</th>
+              <th class="right">Accuracy</th>
+              <th class="right">Last miss</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${top.map(r=>`
+              <tr>
+                <td><span class="drilltag">${r.drill}</span></td>
+                <td class="mono">${r.text}</td>
+                <td class="right mono">${r.wrongs||0}</td>
+                <td class="right mono">${r.attempts||0}</td>
+                <td class="right mono">${r.attempts? (100 - Math.round((r.wrongs/r.attempts)*100))+'%' : '—'}</td>
+                <td class="right small">${fmtAgo(r.lastMiss||0)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div class="small" style="margin-top:.4rem;">Showing top ${top.length} items</div>
+      `;
+      statsContainer.innerHTML = table;
+
+      // Also show bests summary
+      const drills=['mixed','mult12','mult10','mult15','add2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
+      const bests = drills.map(d=>`${d}: ${getBest(d)}`).join('  ·  ');
+      const bestDiv = document.createElement('div');
+      bestDiv.className='small'; bestDiv.style.marginTop='.6rem';
+      bestDiv.textContent = `High scores — ${bests}`;
+      statsContainer.appendChild(bestDiv);
+    }
   </script>
 </body>
 </html>
