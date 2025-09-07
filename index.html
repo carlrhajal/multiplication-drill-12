@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multiplication Drill - Table of 12</title>
+    <style>
+        /*
+         * Basic styling for the multiplication drill app. The layout uses flexbox to
+         * center the content on the page and adjusts font sizes to make the
+         * interaction comfortable on both desktop and mobile screens. Classes
+         * `.correct` and `.wrong` are applied to the feedback element to give
+         * visual cues on whether the user's answer was right or not.
+         */
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f9fafb;
+        }
+        h1 {
+            margin-bottom: 1rem;
+            font-size: 2rem;
+            text-align: center;
+        }
+        .question {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+        input[type="number"] {
+            font-size: 1.25rem;
+            padding: 0.5rem;
+            width: 8rem;
+            box-sizing: border-box;
+        }
+        .feedback {
+            margin-top: 1rem;
+            font-size: 1.25rem;
+            height: 2rem;
+        }
+        .correct {
+            color: #0ea34b;
+        }
+        .wrong {
+            color: #dc2626;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            margin-top: 1rem;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #3b82f6;
+            color: #fff;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Multiplication Drill: 12 Table</h1>
+    <div class="question" id="question"></div>
+    <form id="answerForm" autocomplete="off">
+        <input type="number" id="answer" required />
+    </form>
+    <div id="feedback" class="feedback"></div>
+    <button id="nextButton" style="display: none;">Next</button>
+    <script>
+        /**
+         * Generates a new multiplication question for the table of 12. The operand
+         * is chosen randomly between 0 and 12 (inclusive). Returns an object
+         * containing the factor, operand, and the correct answer.
+         */
+        function generateQuestion() {
+            const factor = 12;
+            const operand = Math.floor(Math.random() * 13);
+            return { factor, operand, correctAnswer: factor * operand };
+        }
+
+        // Grab references to the DOM elements we need to update.
+        const questionEl = document.getElementById('question');
+        const answerForm = document.getElementById('answerForm');
+        const answerInput = document.getElementById('answer');
+        const feedbackEl = document.getElementById('feedback');
+        const nextButton = document.getElementById('nextButton');
+
+        let currentQuestion = generateQuestion();
+
+        /**
+         * Displays the current question and resets the form and feedback area.
+         */
+        function displayQuestion() {
+            questionEl.textContent = `${currentQuestion.factor} × ${currentQuestion.operand} =`;
+            feedbackEl.textContent = '';
+            feedbackEl.className = 'feedback';
+            answerInput.value = '';
+            answerInput.disabled = false;
+            nextButton.style.display = 'none';
+            answerInput.focus();
+        }
+
+        /**
+         * Handles the form submission when the user presses Enter. It evaluates
+         * the answer, updates the feedback, and reveals the Next button. If the
+         * user enters a non-number, the handler simply returns early.
+         */
+        answerForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const userAnswer = parseInt(answerInput.value, 10);
+            if (isNaN(userAnswer)) {
+                return;
+            }
+            // Compare the user's answer to the correct answer and set feedback accordingly
+            if (userAnswer === currentQuestion.correctAnswer) {
+                feedbackEl.textContent = '✅ Correct!';
+                feedbackEl.className = 'feedback correct';
+            } else {
+                feedbackEl.textContent = `❌ Incorrect (Answer: ${currentQuestion.correctAnswer})`;
+                feedbackEl.className = 'feedback wrong';
+            }
+            // Disable input and show the Next button
+            answerInput.disabled = true;
+            nextButton.style.display = 'inline-block';
+        });
+
+        /**
+         * When the Next button is clicked, generate a new question and update
+         * the display.
+         */
+        nextButton.addEventListener('click', function () {
+            currentQuestion = generateQuestion();
+            displayQuestion();
+        });
+
+        // Initialize the first question when the page loads
+        displayQuestion();
+    </script>
+</body>
+</html>
