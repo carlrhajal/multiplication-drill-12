@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Math Drills — Dark + Stats + Division</title>
+  <title>Math Drills — Dark + Stats + Division + Add/Sub</title>
   <style>
     :root{
       --bg:#0b1220; --surface:#111a2b; --muted:#1a2440;
@@ -86,7 +86,8 @@
       <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
       <button data-drill="div">Division (tables ≤20)</button>
       <button data-drill="divZeros">Division (zero-canceling)</button>
-      <button data-drill="add2">Two-digit addition</button>
+      <button data-drill="addAll">Additions (2- & 3-digit)</button>
+      <button data-drill="subAll">Subtractions (2- & 3-digit)</button>
       <button data-drill="squares">Perfect squares (1²–15²)</button>
       <button data-drill="cubes">Perfect cubes (1³–10³)</button>
       <button data-drill="roots">√2, √3, √5 (3 decimals)</button>
@@ -132,8 +133,9 @@
           <option value="mult10">Mult 1–10</option>
           <option value="mult15">Mult 1–15</option>
           <option value="div">Division</option>
-          <option value="divZeros">Division (zero-canceling)</option>
-          <option value="add2">Addition</option>
+          <option value="divZeros">Division (zero-cancel)</option>
+          <option value="addAll">Additions (2&3)</option>
+          <option value="subAll">Subtractions (2&3)</option>
           <option value="squares">Squares</option>
           <option value="cubes">Cubes</option>
           <option value="roots">Roots</option>
@@ -142,6 +144,8 @@
           <option value="exp4">4^</option>
           <option value="exp5">5^</option>
           <option value="decimals">Decimals</option>
+          <!-- legacy filter so old data still viewable -->
+          <option value="add2">Addition (legacy)</option>
         </select>
       </label>
       <label>Sort by:
@@ -212,11 +216,11 @@
         for(let a=2;a<=N;a++){ for(let b=2;b<=N;b++){ const w=isSimple(a,b)?SIMPLE_BIAS:1; add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w);} }
       }
 
-      // Division (tables ≤20) — optionally scaled by 10^k for “510 ÷ 3”
+      // Division (tables ≤20) — scaled by 10^k for e.g. 510 ÷ 3
       if(key==='div'){
         for(let d=2; d<=20; d++){
           for(let q=2; q<=20; q++){
-            for(let k=0; k<=2; k++){ // scale to add zeros
+            for(let k=0; k<=2; k++){
               const dividend = d*q*Math.pow(10,k);
               const divisor = d;
               const ans = q*Math.pow(10,k);
@@ -227,9 +231,9 @@
         }
       }
 
-      // Division (zero-canceling): (d*q*10^k) ÷ (d*10^m), with k>=m to keep integer results
+      // Division (zero-canceling)
       if(key==='divZeros'){
-        const D = [2,3,4,5,6,8,9,12,15]; // common small divisors
+        const D = [2,3,4,5,6,8,9,12,15];
         for(const d of D){
           for(let q=2; q<=20; q++){
             for(let k=1; k<=4; k++){
@@ -237,7 +241,6 @@
                 const dividend = d*q*Math.pow(10,k);
                 const divisor  = d*Math.pow(10,m);
                 const ans = q*Math.pow(10,k-m);
-                // downweight trivial (d in 2,5,10) a bit
                 const w = (d===2||d===5||d===10)?0.7:1;
                 add(`dz${d}_${q}_${k}_${m}`, `${fmt(dividend)} ÷ ${fmt(divisor)}`, ans, 'int', w);
               }
@@ -246,7 +249,7 @@
         }
       }
 
-      // Other drills
+      // Squares/Cubes/Roots/Exponents/Decimals
       if(key==='squares'){ for(let n=1;n<=15;n++) add(`sq${n}`,`${n}²`,n*n,'int'); }
       if(key==='cubes'){ for(let n=1;n<=10;n++) add(`cu${n}`,`${n}³`,n*n*n,'int'); }
       if(key==='roots'){ [2,3,5].forEach(r=>add(`r${r}`,`√${r} (3 dp)`,parseFloat(Math.sqrt(r).toFixed(3)),'float')); }
@@ -259,7 +262,7 @@
       return {items, weights};
     }
 
-    // Mixed (no addition) — now includes both division drills
+    // Mixed (no addition)
     function buildMixedBank(){
       const keys=['mult12','mult10','mult15','div','divZeros','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
       const items=[], weights=new Map();
@@ -285,22 +288,62 @@
       bank.weights.set(id, ok ? Math.max(0.25, w-0.2) : Math.min(5, w+1));
     };
 
-    // Two-digit addition (kept for its drill)
-    const addBucket=[];
-    const pickAdd=()=>{
+    /******** Open-set generators (Additions/Subtractions + legacy add2) ********/
+    // Use “mistake buckets” so recent misses reappear more often.
+    const addBucket=[];      // additions: {key,a,b,count,src}
+    const subBucket=[];      // subtractions
+
+    function pickAddAll(){
+      // 50/50 pick 2-digit or 3-digit
+      const three = Math.random()<0.5;
+      const a = three ? rand(100,999) : rand(10,99);
+      const b = three ? rand(100,999) : rand(10,99);
+      // 60% chance to pull from bucket if available
       if(addBucket.length && Math.random()<0.6){
         const total=addBucket.reduce((s,x)=>s+x.count,0);
         let r=Math.random()*total;
-        for(const m of addBucket){ r-=m.count; if(r<=0) return {id:m.key,text:`${m.a} + ${m.b}`,ans:m.a+m.b,type:'int',a:m.a,b:m.b,src:'add2'}; }
+        for(const m of addBucket){ r-=m.count; if(r<=0) return {id:m.key,text:`${fmt(m.a)} + ${fmt(m.b)}`,ans:m.a+m.b,type:'int',a:m.a,b:m.b,src:'addAll'}; }
       }
+      return {id:`add${a}+${b}`, text:`${fmt(a)} + ${fmt(b)}`, ans:a+b, type:'int', a,b, src:'addAll'};
+    }
+    function recordAddAll(item,ok){
+      const idx=addBucket.findIndex(x=>x.key===item.id);
+      if(ok){ if(idx>-1){ addBucket[idx].count--; if(addBucket[idx].count<=0) addBucket.splice(idx,1); } }
+      else{
+        if(idx>-1) addBucket[idx].count = Math.min(5, addBucket[idx].count+1);
+        else addBucket.push({key:item.id,a:item.a,b:item.b,count:2,src:'addAll'});
+      }
+    }
+
+    function pickSubAll(){
+      const three = Math.random()<0.5;
+      let a = three ? rand(100,999) : rand(10,99);
+      let b = three ? rand(100,999) : rand(10,99);
+      if(a<b) [a,b]=[b,a]; // ensure non-negative
+      if(subBucket.length && Math.random()<0.6){
+        const total=subBucket.reduce((s,x)=>s+x.count,0);
+        let r=Math.random()*total;
+        for(const m of subBucket){ r-=m.count; if(r<=0) return {id:m.key,text:`${fmt(m.a)} − ${fmt(m.b)}`,ans:m.a-m.b,type:'int',a:m.a,b:m.b,src:'subAll'}; }
+      }
+      return {id:`sub${a}-${b}`, text:`${fmt(a)} − ${fmt(b)}`, ans:a-b, type:'int', a,b, src:'subAll'};
+    }
+    function recordSubAll(item,ok){
+      const idx=subBucket.findIndex(x=>x.key===item.id);
+      if(ok){ if(idx>-1){ subBucket[idx].count--; if(subBucket[idx].count<=0) subBucket.splice(idx,1); } }
+      else{
+        if(idx>-1) subBucket[idx].count = Math.min(5, subBucket[idx].count+1);
+        else subBucket.push({key:item.id,a:item.a,b:item.b,count:2,src:'subAll'});
+      }
+    }
+
+    // Legacy two-digit addition (still supported in stats; no menu button)
+    function pickAdd2Legacy(){
       const a=rand(10,99), b=rand(10,99);
       return {id:`${a}+${b}`, text:`${a} + ${b}`, ans:a+b, type:'int', a,b, src:'add2'};
-    };
-    function recordAddResult(item,ok){
-      const i=addBucket.findIndex(x=>x.key===item.id);
-      if(ok){ if(i>-1){ addBucket[i].count--; if(addBucket[i].count<=0) addBucket.splice(i,1);} }
-      else  { if(i>-1) addBucket[i].count=Math.min(5, addBucket[i].count+1);
-              else addBucket.push({key:item.id, a:item.a, b:item.b, count:2}); }
+    }
+    function recordAdd2Legacy(item,ok){
+      // share the same bucket behavior if ever used (not on menu)
+      recordAddAll({...item,src:'addAll'},ok);
     }
 
     /******** UI wiring ********/
@@ -341,9 +384,11 @@
 
     function start(sel){
       drill=sel; isSprint=(getMode()==='sprint');
-      if(drill==='add2') bank=null;
-      else if(drill==='mixed') bank=buildMixedBank();
-      else bank=buildBank(drill);
+
+      // choose generator or bank
+      if(drill==='addAll' || drill==='subAll'){ bank=null; }
+      else if(drill==='mixed'){ bank=buildMixedBank(); }
+      else { bank=buildBank(drill); }
 
       menu.hidden=true; settings.hidden=true; quiz.hidden=false; endpanel.innerHTML='';
       fb.textContent=''; fb.className=''; hud.hidden=false; hudDrill.textContent=labelFor(drill);
@@ -365,15 +410,19 @@
     function labelFor(k){
       const map={ mixed:'Mixed (no addition)', mult12:'12 × (1–15)', mult10:'Mult 1–10',
         mult15:'Mult 1–15', div:'Division (≤20 tables)', divZeros:'Division (zero-canceling)',
-        add2:'Two-digit addition', squares:'Perfect squares', cubes:'Perfect cubes',
+        addAll:'Additions (2 & 3 digits)', subAll:'Subtractions (2 & 3 digits)',
+        squares:'Perfect squares', cubes:'Perfect cubes',
         roots:'Roots (√2,√3,√5)', exp2:'Powers of 2', exp3:'Powers of 3', exp4:'Powers of 4',
-        exp5:'Powers of 5', decimals:'Fractions → decimals' };
+        exp5:'Powers of 5', decimals:'Fractions → decimals', add2:'Addition (legacy)' };
       return map[k]||k;
     }
 
     function pickQuestion(){
-      if(drill==='add2') return pickAdd();
-      return pickWeighted(bank); // finite sets (including mixed, division)
+      if(drill==='addAll') return pickAddAll();
+      if(drill==='subAll') return pickSubAll();
+      // legacy hook (not reachable from menu)
+      if(drill==='add2') return pickAdd2Legacy();
+      return pickWeighted(bank); // finite sets
     }
 
     function ask(){
@@ -390,7 +439,7 @@
       let ok=false;
 
       if(current.type==='float'){
-        const user=parseFloat(raw.replace(/,/g,'')); // allow commas just in case
+        const user=parseFloat(raw.replace(/,/g,'')); // accept commas
         if(!Number.isNaN(user) && Math.abs(user-current.ans)<0.01) ok=true;
       }else{
         const user=parseIntClean(raw);
@@ -399,7 +448,9 @@
 
       // log + adapt
       recordAttempt(drill,current,ok);
-      if(drill==='add2') recordAddResult(current,ok);
+      if(drill==='addAll') recordAddAll(current,ok);
+      else if(drill==='subAll') recordSubAll(current,ok);
+      else if(drill==='add2') recordAdd2Legacy(current,ok);
       else updateWeight(bank,current.id,ok);
 
       if(isSprint){
@@ -430,6 +481,7 @@
     }
 
     aEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); } });
+    const radios=[...document.querySelectorAll("input[name='mode']")];
     back.addEventListener('click', ()=>{
       if(tick){ clearInterval(tick); tick=null; }
       quiz.hidden=true; menu.hidden=false; hud.hidden=true;
@@ -496,7 +548,7 @@
       `;
       statsContainer.innerHTML = table;
 
-      const drills=['mixed','mult12','mult10','mult15','div','divZeros','add2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
+      const drills=['mixed','mult12','mult10','mult15','div','divZeros','addAll','subAll','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals','add2'];
       const bests = drills.map(d=>`${d}: ${getBest(d)}`).join('  ·  ');
       const bestDiv = document.createElement('div');
       bestDiv.className='small'; bestDiv.style.marginTop='.6rem';
