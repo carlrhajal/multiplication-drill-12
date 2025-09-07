@@ -3,27 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Math Drills (Adaptive)</title>
+  <title>Math Drills (Adaptive + Sprint)</title>
   <style>
-    :root {
-      --blue:#3b82f6; --blue-d:#2563eb; --bg:#f8fafc; --good:#0ea34b; --bad:#dc2626;
-    }
+    :root { --blue:#3b82f6; --blue-d:#2563eb; --bg:#f8fafc; --good:#0ea34b; --bad:#dc2626; }
     *{box-sizing:border-box}
     body{margin:0;padding:2rem;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:#0f172a;display:flex;flex-direction:column;align-items:center}
     h1{margin:0 0 1rem}
-    #menu{width:100%;max-width:840px}
-    #menu h2{text-align:center;margin:0 0 .75rem}
+    #menu{width:100%;max-width:900px}
+    #menu h2{text-align:center;margin:.25rem 0 .5rem}
+    .mode-row{display:flex;gap:1rem;justify-content:center;align-items:center;margin:.5rem 0 1rem}
+    .badge{background:#e2e8f0;color:#0f172a;border-radius:999px;padding:.25rem .6rem;font-size:.9rem}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem}
-    .grid button,#back{border:0;border-radius:10px;padding:.7rem 1rem;cursor:pointer;background:var(--blue);color:#fff;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.08)}
-    .grid button:hover,#back:hover{background:var(--blue-d)}
-    #quiz{width:100%;max-width:560px;text-align:center}
+    .grid button,#back,.pill{border:0;border-radius:10px;padding:.7rem 1rem;cursor:pointer;background:var(--blue);color:#fff;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+    .grid button:hover,#back:hover,.pill:hover{background:var(--blue-d)}
+    #quiz{width:100%;max-width:620px;text-align:center}
+    #hud{display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap;margin-bottom:.5rem}
+    .pill{background:#0f172a}
     #question{font-size:1.9rem;margin:1rem 0}
-    #answer{width:240px;padding:.6rem .75rem;font-size:1.2rem;text-align:center;border:2px solid #cbd5e1;border-radius:10px;background:#fff}
+    #answer{width:260px;padding:.6rem .75rem;font-size:1.2rem;text-align:center;border:2px solid #cbd5e1;border-radius:10px;background:#fff}
     #answer:disabled{background:#e2e8f0}
-    #feedback{min-height:1.6rem;margin:.75rem 0 0;font-size:1.2rem}
+    #feedback{min-height:1.6rem;margin:.5rem 0 0;font-size:1.2rem}
     .correct{color:var(--good)} .wrong{color:var(--bad)}
     .row{display:flex;gap:.6rem;justify-content:center;margin-top:1rem}
     .visually-hidden{position:absolute;left:-9999px}
+    #endpanel{margin-top:1rem}
   </style>
 </head>
 <body>
@@ -31,13 +34,19 @@
 
   <div id="menu">
     <h2>Choose a drill</h2>
+    <div class="mode-row">
+      <label><input type="radio" name="mode" value="practice" checked> Practice</label>
+      <label><input type="radio" name="mode" value="sprint"> 1-min Sprint</label>
+      <span id="bestBadge" class="badge" hidden>Best: <b id="bestMenu">0</b></span>
+    </div>
     <div class="grid">
+      <button data-drill="mixed">Mixed (no addition)</button>
       <button data-drill="mult12">12 × (1–15)</button>
-      <button data-drill="mult10">Multiplication 1–10 (no ×1)</button>
-      <button data-drill="mult15">Multiplication 1–15 (no ×1)</button>
+      <button data-drill="mult10">Multiplication 1–10 (no ×1, downweight easy)</button>
+      <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
       <button data-drill="add2">Two-digit addition</button>
-      <button data-drill="squares">Perfect squares</button>
-      <button data-drill="cubes">Perfect cubes</button>
+      <button data-drill="squares">Perfect squares (1²–15²)</button>
+      <button data-drill="cubes">Perfect cubes (1³–10³)</button>
       <button data-drill="roots">√2, √3, √5 (3 decimals)</button>
       <button data-drill="exp2">Powers of 2 (1–10)</button>
       <button data-drill="exp3">Powers of 3 (1–5)</button>
@@ -48,52 +57,81 @@
   </div>
 
   <div id="quiz" hidden>
+    <div id="hud" hidden>
+      <span id="hudDrill" class="pill">—</span>
+      <span id="hudTimer" class="pill" hidden>⏱️ <b id="tLeft">60</b>s</span>
+      <span id="hudScore" class="pill" hidden>Score: <b id="score">0</b></span>
+      <span id="hudBest" class="pill" hidden>Best: <b id="best">0</b></span>
+    </div>
     <div id="question"></div>
     <label for="answer" class="visually-hidden">Answer</label>
     <input id="answer" type="text" inputmode="decimal" autocomplete="off" />
     <div id="feedback" aria-live="polite"></div>
+    <div id="endpanel"></div>
     <div class="row">
       <button id="back">Back</button>
     </div>
   </div>
 
   <script>
-    // ===== Utilities =====
+    // ===== Helpers & constants =====
     const rand = (min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+    const SPRINT_SECONDS = 60;
+    const SIMPLE_BIAS = 0.35; // lower -> rarer; set 0 to eliminate easy facts
+    const isSimple = (a,b) => (a<=3 || b<=3 || a===5 || b===5 || a===10 || b===10);
 
-    // Fractions for decimal drills
+    // Fraction list (for decimals)
     const FRACTIONS=[];
-    for(let i=1;i<5;i++) FRACTIONS.push([i,5]);   // 1/5..4/5
-    for(let i=1;i<6;i++) FRACTIONS.push([i,6]);   // 1/6..5/6
-    for(let i=1;i<7;i++) FRACTIONS.push([i,7]);   // 1/7..6/7
-    for(let i=1;i<8;i++) FRACTIONS.push([i,8]);   // 1/8..7/8
+    for(let i=1;i<5;i++) FRACTIONS.push([i,5]);
+    for(let i=1;i<6;i++) FRACTIONS.push([i,6]);
+    for(let i=1;i<7;i++) FRACTIONS.push([i,7]);
+    for(let i=1;i<8;i++) FRACTIONS.push([i,8]);
     [[1,9],[1,11],[1,12],[1,16],[1,32]].forEach(f=>FRACTIONS.push(f));
 
-    // ===== Adaptive bank builder (finite sets) =====
+    // ===== Build finite banks =====
     function buildBank(key){
       const items=[], weights=new Map();
-      const add=(id,text,ans,type='int')=>{ items.push({id,text,ans,type}); weights.set(id,1); };
+      const add=(id,text,ans,type='int',w=1)=>{ items.push({id,text,ans,type}); weights.set(id,w); };
 
       if(key==='mult12'){
-        for(let b=1;b<=15;b++) add(`12x${b}`,`12 × ${b}`,12*b,'int');
+        for(let b=1;b<=15;b++){
+          const w = (b===1||b===2||b===5||b===10)?0.6:1;
+          add(`12x${b}`,`12 × ${b}`,12*b,'int',w);
+        }
       }
       if(key==='mult10' || key==='mult15'){
         const N = key==='mult10'?10:15;
         for(let a=2;a<=N;a++){
           for(let b=2;b<=N;b++){
-            add(`${a}x${b}`,`${a} × ${b}`,a*b,'int'); // exclude ×1 by starting at 2
+            const w = isSimple(a,b) ? SIMPLE_BIAS : 1;
+            add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w); // exclude ×1 by starting at 2
           }
         }
       }
-      if(key==='squares'){ for(let n=1;n<=20;n++) add(`sq${n}`,`${n}²`,n*n,'int'); }
-      if(key==='cubes'){ for(let n=1;n<=10;n++) add(`cu${n}`,`${n}³`,n*n*n,'int'); }
-      if(key==='roots'){ [2,3,5].forEach(r=>add(`r${r}`,`√${r} ≈ (3 decimals)`,parseFloat(Math.sqrt(r).toFixed(3)),'float')); }
+      if(key==='squares'){ for(let n=1;n<=15;n++) add(`sq${n}`,`${n}²`,n*n,'int'); } // stop at 15²
+      if(key==='cubes'){ for(let n=1;n<=10;n++) add(`cu${n}`,`${n}³`,n*n*n,'int'); } // stop at 10³
+      if(key==='roots'){ [2,3,5].forEach(r=>add(`r${r}`,`√${r} (3 dp)`,parseFloat(Math.sqrt(r).toFixed(3)),'float')); }
       if(key==='exp2'){ for(let e=1;e<=10;e++) add(`2^${e}`,`2^${e}`,2**e,'int'); }
       if(key==='exp3'){ for(let e=1;e<=5;e++) add(`3^${e}`,`3^${e}`,3**e,'int'); }
       if(key==='exp4'){ for(let e=1;e<=5;e++) add(`4^${e}`,`4^${e}`,4**e,'int'); }
       if(key==='exp5'){ for(let e=1;e<=5;e++) add(`5^${e}`,`5^${e}`,5**e,'int'); }
-      if(key==='decimals'){ for(const [n,d] of FRACTIONS) add(`${n}/${d}`,`${n}/${d} ≈ (3 decimals)`,parseFloat((n/d).toFixed(3)),'float'); }
+      if(key==='decimals'){ for(const [n,d] of FRACTIONS) add(`${n}/${d}`,`${n}/${d} (3 dp)`,parseFloat((n/d).toFixed(3)),'float'); }
 
+      return {items,weights};
+    }
+
+    // Mixed (no addition): merge multiple banks
+    function buildMixedBank(){
+      const keys=['mult12','mult10','mult15','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
+      const items=[], weights=new Map();
+      for(const k of keys){
+        const b=buildBank(k);
+        for(const it of b.items){
+          const id = `${k}:${it.id}`;
+          items.push({id,text:it.text,ans:it.ans,type:it.type});
+          weights.set(id, b.weights.get(it.id));
+        }
+      }
       return {items,weights};
     }
 
@@ -109,75 +147,138 @@
 
     function updateWeight(bank,id,correct){
       const w=bank.weights.get(id) ?? 1;
-      if(correct){
-        bank.weights.set(id, Math.max(0.3, w - 0.2));   // good → show less often
-      }else{
-        bank.weights.set(id, Math.min(5,   w + 1));     // mistake → show more often
-      }
+      if(correct) bank.weights.set(id, Math.max(0.25, w-0.2));
+      else        bank.weights.set(id, Math.min(5,     w+1));
     }
 
-    // ===== Two-digit addition: open set with mistake bucket =====
-    const addBucket=[]; // {key,a,b,count}
+    // Two-digit addition: open set + mistake bucket (still available as its own drill)
+    const addBucket=[];
     function pickAdd(){
       if(addBucket.length && Math.random()<0.6){
-        // sample by count
         const total = addBucket.reduce((s,x)=>s+x.count,0);
         let r=Math.random()*total;
         for(const m of addBucket){ r-=m.count; if(r<=0) return {id:m.key,text:`${m.a} + ${m.b}`,ans:m.a+m.b,type:'int',a:m.a,b:m.b}; }
       }
       const a=rand(10,99), b=rand(10,99);
-      return {id:`${a}+${b}`, text:`${a} + ${b}`, ans:a+b, type:'int', a,b};
+      return {id:`${a}+${b}`,text:`${a} + ${b}`,ans:a+b,type:'int',a,b};
     }
-    function recordAddResult(item,correct){
-      const idx=addBucket.findIndex(x=>x.key===item.id);
-      if(correct){
-        if(idx>-1){ addBucket[idx].count--; if(addBucket[idx].count<=0) addBucket.splice(idx,1); }
-      }else{
-        if(idx>-1){ addBucket[idx].count = Math.min(5, addBucket[idx].count+1); }
-        else addBucket.push({key:item.id,a:item.a,b:item.b,count:2}); // show again soon
-      }
+    function recordAddResult(item,ok){
+      const i=addBucket.findIndex(x=>x.key===item.id);
+      if(ok){ if(i>-1){ addBucket[i].count--; if(addBucket[i].count<=0) addBucket.splice(i,1);} }
+      else  { if(i>-1) addBucket[i].count=Math.min(5,addBucket[i].count+1);
+              else addBucket.push({key:item.id,a:item.a,b:item.b,count:2}); }
     }
 
-    // ===== UI / Flow =====
+    // ===== UI state =====
     const menu=document.getElementById('menu');
     const quiz=document.getElementById('quiz');
+    const hud=document.getElementById('hud');
+    const hudDrill=document.getElementById('hudDrill');
+    const hudTimer=document.getElementById('hudTimer');
+    const tLeftEl=document.getElementById('tLeft');
+    const hudScore=document.getElementById('hudScore');
+    const hudBest=document.getElementById('hudBest');
+    const scoreEl=document.getElementById('score');
+    const bestEl=document.getElementById('best');
+    const bestBadge=document.getElementById('bestBadge');
+    const bestMenu=document.getElementById('bestMenu');
+
     const qEl=document.getElementById('question');
     const aEl=document.getElementById('answer');
     const fb=document.getElementById('feedback');
+    const endpanel=document.getElementById('endpanel');
     const back=document.getElementById('back');
 
-    const DELAY_OK=650, DELAY_BAD=1100; // ms
-    let mode=null;        // drill key
-    let bank=null;        // {items,weights} for finite drills
-    let current=null;     // current question item
-    let awaiting=false;   // lock while auto-advancing
-    let timer=null;
+    const modeRadios=[...document.querySelectorAll("input[name='mode']")];
+    const getMode=()=> modeRadios.find(r=>r.checked)?.value || 'practice';
 
+    function storageKey(drill){ return `hiscore_${drill}`; }
+    function getBest(drill){ return parseInt(localStorage.getItem(storageKey(drill))||'0',10); }
+    function setBest(drill,val){ localStorage.setItem(storageKey(drill), String(val)); }
+
+    // show best badge when Sprint selected
+    function refreshMenuBestFor(drill){
+      if(getMode()==='sprint' && drill){
+        bestBadge.hidden=false; bestMenu.textContent=getBest(drill);
+      } else bestBadge.hidden=true;
+    }
+    modeRadios.forEach(r=>r.addEventListener('change',()=>refreshMenuBestFor(lastHoverDrill)));
+
+    let lastHoverDrill=null;
     document.querySelectorAll('#menu [data-drill]').forEach(btn=>{
-      btn.addEventListener('click',()=>{
-        mode=btn.dataset.drill;
-        bank = (mode==='add2') ? null : buildBank(mode);
-        menu.hidden=true; quiz.hidden=false; ask();
-      });
+      btn.addEventListener('mouseenter',()=>{ lastHoverDrill=btn.dataset.drill; refreshMenuBestFor(lastHoverDrill); });
+      btn.addEventListener('focus',()=>{ lastHoverDrill=btn.dataset.drill; refreshMenuBestFor(lastHoverDrill); });
+      btn.addEventListener('click',()=>start(btn.dataset.drill));
     });
 
-    back.addEventListener('click',()=>{
-      clearTimeout(timer); timer=null; awaiting=false;
-      quiz.hidden=true; menu.hidden=false; aEl.value=''; fb.textContent=''; fb.className='';
-      mode=null; bank=null; current=null;
-    });
+    let drill=null;        // current drill key
+    let bank=null;         // bank for finite drills
+    let current=null;      // current question
+    let awaiting=false;    // guard
+    let isSprint=false;
+    let timeLeft=SPRINT_SECONDS;
+    let tick=null;
+    let score=0;
+
+    function start(selected){
+      drill=selected;
+      isSprint = (getMode()==='sprint');
+
+      // Build bank / generator
+      if(drill==='add2'){ bank=null; }
+      else if(drill==='mixed'){ bank=buildMixedBank(); }
+      else { bank=buildBank(drill); }
+
+      // UI on
+      menu.hidden=true; quiz.hidden=false; endpanel.innerHTML=''; fb.textContent=''; fb.className='';
+      hud.hidden=false; hudDrill.textContent=labelFor(drill);
+
+      // Sprint HUD
+      if(isSprint){
+        score=0; scoreEl.textContent='0';
+        hudTimer.hidden=false; hudScore.hidden=false; hudBest.hidden=false;
+        timeLeft=SPRINT_SECONDS; tLeftEl.textContent=String(timeLeft);
+        bestEl.textContent=String(getBest(drill));
+        if(tick) clearInterval(tick);
+        tick=setInterval(()=>{
+          timeLeft--; tLeftEl.textContent=String(timeLeft);
+          if(timeLeft<=0){ finishSprint(); }
+        }, 1000);
+      }else{
+        hudTimer.hidden=true; hudScore.hidden=true; hudBest.hidden=true;
+        if(tick) { clearInterval(tick); tick=null; }
+      }
+
+      ask();
+    }
+
+    function labelFor(k){
+      const map={
+        mixed:'Mixed (no addition)', mult12:'12 × (1–15)', mult10:'Mult 1–10',
+        mult15:'Mult 1–15', add2:'Two-digit addition', squares:'Perfect squares',
+        cubes:'Perfect cubes', roots:'Roots (√2,√3,√5)', exp2:'Powers of 2',
+        exp3:'Powers of 3', exp4:'Powers of 4', exp5:'Powers of 5', decimals:'Fractions → decimals'
+      };
+      return map[k]||k;
+    }
+
+    function pickQuestion(){
+      if(drill==='add2') return pickAdd();
+      // finite sets (including mixed)
+      return pickWeighted(bank);
+    }
 
     function ask(){
-      awaiting=false; clearTimeout(timer); timer=null;
-      if(mode==='add2'){ current = pickAdd(); }
-      else { current = pickWeighted(bank); }
-      qEl.textContent=current.text;
-      aEl.disabled=false; aEl.value=''; fb.textContent=''; fb.className='';
-      aEl.focus();
+      awaiting=false;
+      current = pickQuestion();
+      qEl.textContent = current.text;
+      aEl.disabled=false; aEl.value=''; aEl.focus();
+      fb.textContent=''; fb.className='';
     }
 
     function check(){
-      const raw=aEl.value.trim(); if(!raw || awaiting) return;
+      if(awaiting) return;
+      const raw=aEl.value.trim(); if(!raw) return;
       let ok=false;
       if(current.type==='float'){
         const user=parseFloat(raw);
@@ -187,25 +288,54 @@
         if(!Number.isNaN(user) && user===current.ans) ok=true;
       }
 
-      if(ok){ fb.textContent='✅ Correct!'; fb.className='correct'; }
-      else{
-        fb.textContent = `❌ Incorrect (Answer: ${current.type==='float'?current.ans.toFixed(3):String(current.ans)})`;
-        fb.className='wrong';
-      }
-      aEl.disabled=true; awaiting=true;
+      if(ok){ fb.textContent='✅'; fb.className='correct'; }
+      else  { fb.textContent = `❌ (${current.type==='float'?current.ans.toFixed(3):String(current.ans)})`; fb.className='wrong'; }
 
       // adapt
-      if(mode==='add2') recordAddResult(current,ok);
+      if(drill==='add2') recordAddResult(current,ok);
       else updateWeight(bank,current.id,ok);
 
-      // auto-advance
-      const delay = ok ? DELAY_OK : DELAY_BAD;
-      timer=setTimeout(ask, delay);
+      // Sprint scoring & immediate next
+      if(isSprint){
+        if(ok){ score++; scoreEl.textContent=String(score); }
+        // NO DELAY — move immediately
+        ask();
+        return;
+      }
+
+      // Practice: short auto-advance (kept small)
+      aEl.disabled=true;
+      awaiting=true;
+      setTimeout(()=>{ awaiting=false; ask(); }, ok?650:1100);
     }
 
-    // Enter submits; auto-advance happens inside check()
-    aEl.addEventListener('keydown',e=>{
-      if(e.key==='Enter'){ e.preventDefault(); check(); }
+    function finishSprint(){
+      if(tick){ clearInterval(tick); tick=null; }
+      aEl.disabled=true;
+      // save best
+      const best=getBest(drill);
+      if(score>best){ setBest(drill,score); }
+      bestEl.textContent=String(getBest(drill));
+      endpanel.innerHTML = `
+        <div class="row" style="margin-top:.5rem;gap:.5rem;flex-wrap:wrap;justify-content:center">
+          <span class="badge">Time! Score: <b>${score}</b> — Best: <b>${getBest(drill)}</b>${score>best?' 🎉':''}</span>
+          <button class="pill" id="again">Play Again</button>
+        </div>`;
+      document.getElementById('again').addEventListener('click', ()=> start(drill));
+    }
+
+    // Enter submits (practice: auto-advance with small delay; sprint: instant next)
+    aEl.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); }
+    });
+
+    back.addEventListener('click', ()=>{
+      if(tick){ clearInterval(tick); tick=null; }
+      quiz.hidden=true; menu.hidden=false; hud.hidden=true;
+      aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
+      // refresh best badge for current hover/selection
+      refreshMenuBestFor(drill);
+      drill=null; bank=null; current=null; score=0;
     });
   </script>
 </body>
