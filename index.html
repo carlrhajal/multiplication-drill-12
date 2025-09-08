@@ -31,7 +31,6 @@
 
     button,input,select{touch-action:manipulation}
 
-    /* top bar */
     .topbar{width:100%; max-width:1000px; display:flex; justify-content:space-between; align-items:center; position:relative}
     .ghost{
       background:transparent; color:var(--text); border:1px solid var(--muted);
@@ -39,7 +38,6 @@
     }
     .ghost:hover{background:var(--muted)}
 
-    /* panels */
     .panel{width:100%; max-width:1000px; background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px}
     #menu h2,#settings h2{margin:0 0 .6rem; font-size:clamp(1.05rem, 3.8vw, 1.2rem)}
     .mode-row{display:flex; gap:12px; align-items:center; margin:.25rem 0 .75rem; flex-wrap:wrap}
@@ -76,7 +74,6 @@
     .row{display:flex; gap:.6rem; justify-content:center; margin-top:.8rem; flex-wrap:wrap}
     .visually-hidden{position:absolute; left:-9999px}
 
-    /* settings */
     #settings .controls{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin:.5rem 0 .75rem}
     select{
       background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.6rem .7rem; min-height:44px;
@@ -90,7 +87,6 @@
     .right{text-align:right}
     .drilltag{background:#0f1a30; padding:.15rem .5rem; border-radius:999px; font-size:.8rem}
 
-    /* Mobile tweaks */
     #submitBtn{display:none}
     @media (max-width: 640px){
       body{padding:16px; padding-bottom:max(16px, env(safe-area-inset-bottom));}
@@ -124,8 +120,9 @@
       <span id="bestBadge" class="badge" hidden>Best: <b id="bestMenu">0</b></span>
     </div>
     <div class="grid">
-      <button data-drill="mixed">Mixed (no addition)</button>
+      <button data-drill="mixed">Mixed (no addition; no zero-cancel)</button>
       <button data-drill="mult12">12 × (1–15)</button>
+      <button data-drill="mult15x">15 × (2–15)</button>
       <button data-drill="mult10">Multiplication 1–10 (no ×1, downweight easy)</button>
       <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
       <button data-drill="div">Division (tables ≤20)</button>
@@ -175,6 +172,7 @@
           <option value="">All</option>
           <option value="mixed">Mixed</option>
           <option value="mult12">12 ×</option>
+          <option value="mult15x">15 × (2–15)</option>
           <option value="mult10">Mult 1–10</option>
           <option value="mult15">Mult 1–15</option>
           <option value="div">Division</option>
@@ -252,18 +250,23 @@
       const items=[], weights=new Map();
       const add=(id,text,ans,type='int',w=1)=>{ items.push({id,text,ans,type}); weights.set(id,w); };
 
-      // Multiplication
+      // 12× table
       if(key==='mult12'){ for(let b=1;b<=15;b++){ const w=(b===1||b===2||b===5||b===10)?0.6:1; add(`12x${b}`,`12 × ${b}`,12*b,'int',w);} }
+
+      // 15× table (2–15)
+      if(key==='mult15x'){ for(let b=2;b<=15;b++){ const w=(b===2||b===5||b===10)?0.6:1; add(`15x${b}`,`15 × ${b}`,15*b,'int',w);} }
+
+      // Full multiplication banks
       if(key==='mult10' || key==='mult15'){
         const N=(key==='mult10'?10:15);
         for(let a=2;a<=N;a++){ for(let b=2;b<=N;b++){ const w=isSimple(a,b)?SIMPLE_BIAS:1; add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w);} }
       }
 
-      // Division (tables ≤20) — optionally scaled by 10^k for “510 ÷ 3”
+      // Division (tables ≤20) with scaling
       if(key==='div'){
         for(let d=2; d<=20; d++){
           for(let q=2; q<=20; q++){
-            for(let k=0; k<=2; k++){ // scale to add zeros
+            for(let k=0; k<=2; k++){
               const dividend = d*q*Math.pow(10,k);
               const divisor = d;
               const ans = q*Math.pow(10,k);
@@ -274,9 +277,9 @@
         }
       }
 
-      // Division (zero-canceling): (d*q*10^k) ÷ (d*10^m), with k>=m to keep integer results
+      // Division (zero-canceling)
       if(key==='divZeros'){
-        const D = [2,3,4,5,6,8,9,12,15]; // common small divisors
+        const D = [2,3,4,5,6,8,9,12,15];
         for(const d of D){
           for(let q=2; q<=20; q++){
             for(let k=1; k<=4; k++){
@@ -305,13 +308,19 @@
       return {items, weights};
     }
 
-    // Mixed (no addition)
+    // Mixed (no addition; no zero-cancel divisions)
     function buildMixedBank(){
-      const keys=['mult12','mult10','mult15','div','divZeros','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
+      const keys=[
+        'mult12','mult10','mult15', // main multiplication sets
+        'div',                      // regular division only
+        'squares','cubes','roots',
+        'exp2','exp3','exp4','exp5',
+        'decimals'
+      ];
       const items=[], weights=new Map();
-      for(const k of keys){
+      for (const k of keys){
         const b=buildBank(k);
-        for(const it of b.items){
+        for (const it of b.items){
           const id=`${k}:${it.id}`;
           items.push({id, text:it.text, ans:it.ans, type:it.type, src:k});
           weights.set(id, b.weights.get(it.id));
@@ -331,7 +340,7 @@
       bank.weights.set(id, ok ? Math.max(0.25, w-0.2) : Math.min(5, w+1));
     };
 
-    // Two-digit addition (open-set generator)
+    // Two-digit addition (open-set)
     const addBucket=[];
     const pickAdd=()=>{
       if(addBucket.length && Math.random()<0.6){
@@ -349,7 +358,7 @@
               else addBucket.push({key:item.id, a:item.a, b:item.b, count:2}); }
     }
 
-    // Two-digit subtraction (open-set generator)
+    // Two-digit subtraction (open-set)
     const subBucket=[];
     const pickSub=()=>{
       if(subBucket.length && Math.random()<0.6){
@@ -361,7 +370,7 @@
         }
       }
       let a=rand(10,99), b=rand(10,99);
-      if(a<b) [a,b]=[b,a]; // keep non-negative
+      if(a<b) [a,b]=[b,a];
       return {id:`${a}-${b}`, text:`${a} − ${b}`, ans:a-b, type:'int', a,b, src:'sub2'};
     };
     function recordSubResult(item,ok){
@@ -432,19 +441,23 @@
     }
 
     function labelFor(k){
-      const map={ mixed:'Mixed (no addition)', mult12:'12 × (1–15)', mult10:'Mult 1–10',
-        mult15:'Mult 1–15', div:'Division (≤20 tables)', divZeros:'Division (zero-canceling)',
+      const map={
+        mixed:'Mixed (no addition; no zero-cancel)',
+        mult12:'12 × (1–15)', mult15x:'15 × (2–15)',
+        mult10:'Mult 1–10', mult15:'Mult 1–15',
+        div:'Division (≤20 tables)', divZeros:'Division (zero-canceling)',
         add2:'Two-digit addition', sub2:'Two-digit subtraction',
         squares:'Perfect squares', cubes:'Perfect cubes',
         roots:'Roots (√2,√3,√5)', exp2:'Powers of 2', exp3:'Powers of 3', exp4:'Powers of 4',
-        exp5:'Powers of 5', decimals:'Fractions → decimals' };
+        exp5:'Powers of 5', decimals:'Fractions → decimals'
+      };
       return map[k]||k;
     }
 
     function pickQuestion(){
       if(drill==='add2') return pickAdd();
       if(drill==='sub2') return pickSub();
-      return pickWeighted(bank); // finite sets (including mixed, division)
+      return pickWeighted(bank);
     }
 
     function ask(){
@@ -461,14 +474,13 @@
       let ok=false;
 
       if(current.type==='float'){
-        const user=parseFloat(raw.replace(/,/g,'')); // allow commas just in case
+        const user=parseFloat(raw.replace(/,/g,''));
         if(!Number.isNaN(user) && Math.abs(user-current.ans)<0.01) ok=true;
       }else{
         const user=parseIntClean(raw);
         if(!Number.isNaN(user) && user===current.ans) ok=true;
       }
 
-      // log + adapt
       recordAttempt(drill,current,ok);
       if(drill==='add2') recordAddResult(current,ok);
       else if(drill==='sub2') recordSubResult(current,ok);
@@ -480,7 +492,6 @@
         return;
       }
 
-      // Practice: brief feedback then advance
       fb.textContent = ok ? '✅ Correct!' : `❌ (${current.type==='float'?current.ans.toFixed(3):fmt(current.ans)})`;
       fb.className = ok ? 'correct' : 'wrong';
       aEl.disabled=true; awaiting=true;
@@ -533,7 +544,7 @@
         if(sort==='rate'){
           const ar = a.attempts? a.wrongs/a.attempts : 0;
           const br = b.attempts? b.wrongs/b.attempts : 0;
-          return br - ar; // lowest accuracy first
+          return br - ar;
         }
         if(sort==='recent') return (b.lastMiss||0)-(a.lastMiss||0);
         if(sort==='attempts') return (b.attempts||0)-(a.attempts||0);
@@ -570,7 +581,7 @@
       `;
       statsContainer.innerHTML = table;
 
-      const drills=['mixed','mult12','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
+      const drills=['mixed','mult12','mult15x','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
       const bests = drills.map(d=>`${d}: ${getBest(d)}`).join('  ·  ');
       const bestDiv = document.createElement('div');
       bestDiv.className='small'; bestDiv.style.marginTop='.6rem';
