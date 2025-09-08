@@ -17,9 +17,9 @@
     html,body{height:100%}
     body{
       margin:0; padding:24px;
-      padding-left: max(24px, env(safe-area-inset-left));
+      padding-left:max(24px, env(safe-area-inset-left));
       padding-right:max(24px, env(safe-area-inset-right));
-      padding-top: max(24px, env(safe-area-inset-top));
+      padding-top:max(24px, env(safe-area-inset-top));
       padding-bottom:max(24px, env(safe-area-inset-bottom));
       font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
       background:var(--bg); color:var(--text);
@@ -44,10 +44,7 @@
     .mode-row label{display:flex; gap:.45rem; align-items:center; padding:.25rem .5rem; border-radius:999px; background:#0f1a30}
     .badge{background:var(--muted); color:var(--text); border-radius:999px; padding:.25rem .6rem; font-size:.9rem}
 
-    .grid{
-      display:grid; gap:.6rem;
-      grid-template-columns:repeat(auto-fit, minmax(220px,1fr));
-    }
+    .grid{display:grid; gap:.6rem; grid-template-columns:repeat(auto-fit, minmax(220px,1fr));}
     .grid button,#back,.pill,.danger,#submitBtn{
       border:0; border-radius:12px; padding:.85rem 1rem; cursor:pointer; font-weight:600;
       box-shadow:0 6px 18px rgba(0,0,0,.25); min-height:48px;
@@ -75,10 +72,8 @@
     .visually-hidden{position:absolute; left:-9999px}
 
     #settings .controls{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin:.5rem 0 .75rem}
-    select{
-      background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.6rem .7rem; min-height:44px;
-    }
-    table{width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.95rem; overflow:auto}
+    select{background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.6rem .7rem; min-height:44px;}
+    table{width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.95rem}
     th,td{padding:.55rem .6rem; text-align:left; border-bottom:1px solid #1e2a4a}
     th{color:#b9c2d0; font-weight:600}
     tbody tr:hover{background:#0f1934}
@@ -87,6 +82,19 @@
     .right{text-align:right}
     .drilltag{background:#0f1a30; padding:.15rem .5rem; border-radius:999px; font-size:.8rem}
 
+    /* Modal */
+    .modal{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; z-index:50;}
+    .modal[hidden]{display:none}
+    .backdrop{position:absolute; inset:0; background:rgba(0,0,0,.6)}
+    .sheet{position:relative; background:var(--surface); border-radius:16px; box-shadow:var(--shadow); width:min(900px, 100%); max-height:85vh; overflow:auto; padding:16px}
+    .sheet h3{margin:0 0 .6rem}
+    .close{position:absolute; top:10px; right:10px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:var(--text); padding:.35rem .55rem; cursor:pointer}
+    .refgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.6rem}
+    .card{background:#0f1a30; border:1px solid #223055; border-radius:12px; padding:.6rem .7rem}
+    .card h4{margin:.1rem 0 .35rem; font-size:1rem; color:#d6dbe6}
+    .card table{font-size:.95rem}
+
+    /* Mobile tweaks */
     #submitBtn{display:none}
     @media (max-width: 640px){
       body{padding:16px; padding-bottom:max(16px, env(safe-area-inset-bottom));}
@@ -147,6 +155,7 @@
       <span id="hudTimer" class="pill" hidden>⏱️ <b id="tLeft">60</b>s</span>
       <span id="hudScore" class="pill" hidden>Score: <b id="score">0</b></span>
       <span id="hudBest" class="pill" hidden>Best: <b id="best">0</b></span>
+      <button id="refBtn" class="ghost" hidden>📘 Reference</button>
     </div>
 
     <div id="question"></div>
@@ -204,6 +213,16 @@
     <div id="statsContainer"></div>
   </div>
 
+  <!-- REFERENCE MODAL -->
+  <div id="refModal" class="modal" hidden>
+    <div class="backdrop" id="refCloseBg"></div>
+    <div class="sheet">
+      <button class="close" id="refCloseBtn">✖</button>
+      <h3 id="refTitle">Reference</h3>
+      <div id="refContent"></div>
+    </div>
+  </div>
+
   <script>
     /******** Helpers & constants ********/
     const rand=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
@@ -211,11 +230,7 @@
     const SIMPLE_BIAS=0.35; // lower => rarer easy facts (mult/div)
     const isSimple=(a,b)=> (a<=3||b<=3||a===5||b===5||a===10||b===10);
     const fmt=n=> n.toLocaleString('en-CA');
-    const parseIntClean = s => {
-      const cleaned = s.replace(/,/g,'').trim();
-      const v = parseInt(cleaned,10);
-      return Number.isNaN(v) ? NaN : v;
-    };
+    const parseIntClean = s => { const cleaned = s.replace(/,/g,'').trim(); const v = parseInt(cleaned,10); return Number.isNaN(v) ? NaN : v; };
 
     // Fractions list (for decimals)
     const FRACTIONS=[];
@@ -262,11 +277,11 @@
         for(let a=2;a<=N;a++){ for(let b=2;b<=N;b++){ const w=isSimple(a,b)?SIMPLE_BIAS:1; add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w);} }
       }
 
-      // Division (tables ≤20) with scaling
+      // Division (tables ≤20) with scaling (for standalone Division drill)
       if(key==='div'){
         for(let d=2; d<=20; d++){
           for(let q=2; q<=20; q++){
-            for(let k=0; k<=2; k++){
+            for(let k=0; k<=2; k++){ // scaling to include 510 ÷ 3 etc.
               const dividend = d*q*Math.pow(10,k);
               const divisor = d;
               const ans = q*Math.pow(10,k);
@@ -277,7 +292,20 @@
         }
       }
 
-      // Division (zero-canceling)
+      // NEW: Basic division (no scaling) — used by Mixed to avoid any zero-cancel feel
+      if(key==='divBasic'){
+        for(let d=2; d<=20; d++){
+          for(let q=2; q<=20; q++){
+            const dividend = d*q;
+            const divisor = d;
+            const ans = q;
+            const w = (d===2||d===5||d===10)?SIMPLE_BIAS:1;
+            add(`db${d}q${q}`, `${fmt(dividend)} ÷ ${fmt(divisor)}`, ans, 'int', w);
+          }
+        }
+      }
+
+      // Division (zero-canceling) where dividend and divisor both have powers of 10
       if(key==='divZeros'){
         const D = [2,3,4,5,6,8,9,12,15];
         for(const d of D){
@@ -308,11 +336,11 @@
       return {items, weights};
     }
 
-    // Mixed (no addition; no zero-cancel divisions)
+    // Mixed (no addition; and now uses divBasic => no scaling, no zero-cancel)
     function buildMixedBank(){
       const keys=[
-        'mult12','mult10','mult15', // main multiplication sets
-        'div',                      // regular division only
+        'mult12','mult10','mult15',
+        'divBasic',                 // <— only basic division
         'squares','cubes','roots',
         'exp2','exp3','exp4','exp5',
         'decimals'
@@ -380,8 +408,89 @@
               else subBucket.push({key:item.id, a:item.a, b:item.b, count:2}); }
     }
 
-    /******** UI wiring ********/
+    /******** Reference (answer sheets) ********/
+    const REFERENCEABLE = new Set(['mult12','mult15x','mult10','mult15','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals']);
     const $=id=>document.getElementById(id);
+    function hasReference(drill){ return REFERENCEABLE.has(drill); }
+
+    function thRow(labels){ return `<tr>${labels.map(c=>`<th>${c}</th>`).join('')}</tr>`; }
+    function tdRow(cells){ return `<tr>${cells.map(c=>`<td class="mono">${c}</td>`).join('')}</tr>`; }
+
+    function table12(){
+      const rows=[];
+      rows.push(thRow(['12 × b','Answer']));
+      for(let b=1;b<=15;b++) rows.push(tdRow([`12 × ${b}`, 12*b]));
+      return `<div class="card"><h4>12× (1–15)</h4><table>${rows.join('')}</table></div>`;
+    }
+    function table15x(){
+      const rows=[];
+      rows.push(thRow(['15 × b','Answer']));
+      for(let b=2;b<=15;b++) rows.push(tdRow([`15 × ${b}`, 15*b]));
+      return `<div class="card"><h4>15× (2–15)</h4><table>${rows.join('')}</table></div>`;
+    }
+    function tableMultMatrix(N){
+      const hdr = ['×', ...Array.from({length:N-1},(_,i)=>i+2)];
+      const rows=[thRow(hdr)];
+      for(let a=2;a<=N;a++){
+        const cells=[a, ...Array.from({length:N-1},(_,j)=> (a*(j+2)))];
+        rows.push(tdRow(cells));
+      }
+      return `<div class="card"><h4>${N===10?'Multiplication 2–10':'Multiplication 2–15'}</h4><table>${rows.join('')}</table></div>`;
+    }
+    function tableList(title, pairs){
+      const rows=[thRow([title,'Answer'])];
+      for(const [label,ans] of pairs) rows.push(tdRow([label, ans]));
+      return `<div class="card"><h4>${title}</h4><table>${rows.join('')}</table></div>`;
+    }
+
+    function getReferenceHTML(drill){
+      if(drill==='mult12') return `<div class="refgrid">${table12()}</div>`;
+      if(drill==='mult15x') return `<div class="refgrid">${table15x()}</div>`;
+      if(drill==='mult10') return `<div class="refgrid">${tableMultMatrix(10)}</div>`;
+      if(drill==='mult15') return `<div class="refgrid">${tableMultMatrix(15)}</div>`;
+      if(drill==='squares'){
+        const pairs = Array.from({length:15},(_,i)=>[`${i+1}²`, (i+1)**2]);
+        return `<div class="refgrid">${tableList('Squares 1²–15²', pairs)}</div>`;
+      }
+      if(drill==='cubes'){
+        const pairs = Array.from({length:10},(_,i)=>[`${i+1}³`, (i+1)**3]);
+        return `<div class="refgrid">${tableList('Cubes 1³–10³', pairs)}</div>`;
+      }
+      if(drill==='roots'){
+        const pairs = [[`√2 (3 dp)`, (Math.sqrt(2)).toFixed(3)],
+                       [`√3 (3 dp)`, (Math.sqrt(3)).toFixed(3)],
+                       [`√5 (3 dp)`, (Math.sqrt(5)).toFixed(3)]];
+        return `<div class="refgrid">${tableList('Roots', pairs)}</div>`;
+      }
+      if(drill==='exp2'){
+        const pairs = Array.from({length:10},(_,e)=>[`2^${e+1}`, 2**(e+1)]);
+        return `<div class="refgrid">${tableList('Powers of 2', pairs)}</div>`;
+      }
+      if(drill==='exp3'){
+        const pairs = Array.from({length:5},(_,e)=>[`3^${e+1}`, 3**(e+1)]);
+        return `<div class="refgrid">${tableList('Powers of 3', pairs)}</div>`;
+      }
+      if(drill==='exp4'){
+        const pairs = Array.from({length:5},(_,e)=>[`4^${e+1}`, 4**(e+1)]);
+        return `<div class="refgrid">${tableList('Powers of 4', pairs)}</div>`;
+      }
+      if(drill==='exp5'){
+        const pairs = Array.from({length:5},(_,e)=>[`5^${e+1}`, 5**(e+1)]);
+        return `<div class="refgrid">${tableList('Powers of 5', pairs)}</div>`;
+      }
+      if(drill==='decimals'){
+        const pairs = [];
+        for(let i=1;i<5;i++) pairs.push([`${i}/5 (3 dp)`, (i/5).toFixed(3)]);
+        for(let i=1;i<6;i++) pairs.push([`${i}/6 (3 dp)`, (i/6).toFixed(3)]);
+        for(let i=1;i<7;i++) pairs.push([`${i}/7 (3 dp)`, (i/7).toFixed(3)]);
+        for(let i=1;i<8;i++) pairs.push([`${i}/8 (3 dp)`, (i/8).toFixed(3)]);
+        [[1,9],[1,11],[1,12],[1,16],[1,32]].forEach(([n,d])=>pairs.push([`${n}/${d} (3 dp)`, (n/d).toFixed(3)]));
+        return `<div class="refgrid">${tableList('Fractions → decimals', pairs)}</div>`;
+      }
+      return `<div class="card">No reference available.</div>`;
+    }
+
+    /******** UI wiring ********/
     const menu=$('menu'), quiz=$('quiz'), settings=$('settings');
     const hud=$('hud'), hudDrill=$('hudDrill'), hudTimer=$('hudTimer'), tLeftEl=$('tLeft'),
           hudScore=$('hudScore'), scoreEl=$('score'), hudBest=$('hudBest'), bestEl=$('best'),
@@ -391,6 +500,7 @@
     const openSettingsBtn=$('openSettings'), closeSettingsBtn=$('closeSettings'),
           clearStatsBtn=$('clearStats'), clearScoresBtn=$('clearScores'),
           fltDrill=$('fltDrill'), fltSort=$('fltSort'), statsContainer=$('statsContainer');
+    const refBtn=$('refBtn'), refModal=$('refModal'), refCloseBtn=$('refCloseBtn'), refCloseBg=$('refCloseBg'), refTitle=$('refTitle'), refContent=$('refContent');
 
     const radios=[...document.querySelectorAll("input[name='mode']")];
     const getMode=()=> radios.find(r=>r.checked)?.value || 'practice';
@@ -425,6 +535,9 @@
 
       menu.hidden=true; settings.hidden=true; quiz.hidden=false; endpanel.innerHTML='';
       fb.textContent=''; fb.className=''; hud.hidden=false; hudDrill.textContent=labelFor(drill);
+
+      // Show/hide Reference button
+      refBtn.hidden=!hasReference(drill);
 
       if(isSprint){
         score=0; scoreEl.textContent='0';
@@ -522,6 +635,19 @@
       refreshMenuBestFor(drill);
       drill=null; bank=null; current=null; score=0;
     });
+
+    /******** Reference UI handlers ********/
+    function openReference(){
+      refTitle.textContent = `Reference — ${labelFor(drill)}`;
+      refContent.innerHTML = getReferenceHTML(drill);
+      refModal.hidden=false;
+    }
+    function closeReference(){ refModal.hidden=true; aEl.focus({preventScroll:true}); }
+
+    refBtn.addEventListener('click', openReference);
+    refCloseBtn.addEventListener('click', closeReference);
+    refCloseBg.addEventListener('click', closeReference);
+    document.addEventListener('keydown', (e)=>{ if(!refModal.hidden && e.key==='Escape') closeReference(); });
 
     /******** Settings render ********/
     function fmtAgo(ts){
