@@ -98,7 +98,7 @@
     .card tbody tr:hover{background:#0c1430}
     .tighttable{font-size:.88rem}
 
-    .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:#text; padding:.3rem .5rem; cursor:pointer}
+    .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:var(--text); padding:.3rem .5rem; cursor:pointer}
 
     /* Mobile tweaks */
     #submitBtn{display:none}
@@ -137,8 +137,8 @@
     <div class="grid">
       <button data-drill="mixed">Mixed (no addition; no zero-cancel)</button>
       <button data-drill="mult12">12 × (1–15)</button>
-      <button data-drill="mult16">16 × (1–11)</button>
-      <button data-drill="mult1216">12× & 16×</button>
+      <button data-drill="mult16">16 × (1–11)</button><!-- NEW -->
+      <button data-drill="mult1216">12× & 16× (combo)</button><!-- NEW -->
       <button data-drill="mult15x">15 × (2–15)</button>
       <button data-drill="mult10">Multiplication 1–10 (no ×1, downweight easy)</button>
       <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
@@ -154,7 +154,6 @@
       <button data-drill="exp4">Powers of 4 (1–5)</button>
       <button data-drill="exp5">Powers of 5 (1–5)</button>
       <button data-drill="decimals">Fractions → decimals</button>
-      <button data-drill="pi">π — How many can you remember?</button><!-- NEW -->
     </div>
   </div>
 
@@ -164,7 +163,7 @@
       <span id="hudDrill" class="pill">—</span>
       <span id="hudTimer" class="pill" hidden>⏱️ <b id="tLeft">60</b>s</span>
       <span id="hudScore" class="pill" hidden>Score: <b id="score">0</b></span>
-      <span id="hudBest" class="pill" hidden>Best: <b id="best">0</b></span><!-- shown for π even in practice -->
+      <span id="hudBest" class="pill" hidden>Best: <b id="best">0</b></span>
       <button id="refBtn" class="ghost" hidden>📘 Reference</button>
     </div>
 
@@ -191,8 +190,8 @@
           <option value="">All</option>
           <option value="mixed">Mixed</option>
           <option value="mult12">12 ×</option>
-          <option value="mult16">16 ×</option>
-          <option value="mult1216">12× & 16×</option>
+          <option value="mult16">16 ×</option><!-- NEW -->
+          <option value="mult1216">12× & 16×</option><!-- NEW -->
           <option value="mult15x">15 × (2–15)</option>
           <option value="mult10">Mult 1–10</option>
           <option value="mult15">Mult 1–15</option>
@@ -208,7 +207,6 @@
           <option value="exp4">4^</option>
           <option value="exp5">5^</option>
           <option value="decimals">Decimals</option>
-          <option value="pi">π digits</option><!-- NEW -->
         </select>
       </label>
       <label>Sort by:
@@ -253,21 +251,6 @@
     for(let i=1;i<8;i++) FRACTIONS.push([i,8]);
     [[1,9],[1,11],[1,12],[1,16],[1,32]].forEach(f=>FRACTIONS.push(f));
 
-    /******** π digits (first 500 after the decimal) ********/
-    // Validates attempts up to 500 digits; easy to expand by extending PI_DIGITS.
-    const PI_DIGITS = (
-      "14159265358979323846264338327950288419716939937510" +
-      "58209749445923078164062862089986280348253421170679" +
-      "82148086513282306647093844609550582231725359408128" +
-      "48111745028410270193852110555964462294895493038196" +
-      "44288109756659334461284756482337867831652712019091" +
-      "45648566923460348610454326648213393607260249141273" +
-      "72458700660631558817488152092096282925409171536436" +
-      "78925903600113305305488204665213841469519415116094" +
-      "33057270365759591953092186117381932611793105118548" +
-      "07446237996274956735188575272489122793818301194912"
-    ); // 500 digits total
-
     /******** Mistake logging ********/
     const MKEY='mistakes_v1';
     const loadMistakes=()=>{ try{ return JSON.parse(localStorage.getItem(MKEY)||'{}'); }catch{ return {}; } };
@@ -296,12 +279,13 @@
       // 12× table
       if(key==='mult12'){ for(let b=1;b<=15;b++){ const w=(b===1||b===2||b===5||b===10)?0.6:1; add(`12x${b}`,`12 × ${b}`,12*b,'int',w);} }
 
-      // 16× table (1–11)
+      // 16× table (1–11) — NEW
       if(key==='mult16'){ for(let b=1;b<=11;b++){ const w=(b===1||b===2||b===5||b===10)?0.6:1; add(`16x${b}`,`16 × ${b}`,16*b,'int',w);} }
 
-      // 12× & 16× combo
+      // 12× & 16× combo — NEW
       if(key==='mult1216'){
-        const b12=buildBank('mult12'); const b16=buildBank('mult16');
+        const b12=buildBank('mult12');
+        const b16=buildBank('mult16');
         for(const it of b12.items){ items.push(it); weights.set(it.id, b12.weights.get(it.id)); }
         for(const it of b16.items){ items.push(it); weights.set(it.id, b16.weights.get(it.id)); }
       }
@@ -375,8 +359,8 @@
     // Mixed (no addition; uses divBasic => no scaling, no zero-cancel)
     function buildMixedBank(){
       const keys=[
-        'mult12','mult10','mult15',
-        'divBasic',
+        'mult12','mult10','mult15', // keep main sets
+        'divBasic',                 // only basic division
         'squares','cubes','roots',
         'exp2','exp3','exp4','exp5',
         'decimals'
@@ -483,6 +467,7 @@
     }
 
     function getReferenceHTML(drill){
+      // Show everything relevant for the chosen drill, in a compact grid
       if(drill==='mult12')   return `<div class="refgrid">${table12()}</div>`;
       if(drill==='mult16')   return `<div class="refgrid">${table16()}</div>`;
       if(drill==='mult1216') return `<div class="refgrid">${table12()}${table16()}</div>`;
@@ -570,11 +555,7 @@
 
     function start(sel){
       drill=sel; isSprint=(getMode()==='sprint');
-
-      // π drill is always practice-mode style (no timer/score), but shows Best.
-      if(drill==='pi'){ isSprint=false; radios.find(r=>r.value==='practice').checked=true; }
-
-      if(drill==='add2' || drill==='sub2' || drill==='pi') bank=null;
+      if(drill==='add2' || drill==='sub2') bank=null;
       else if(drill==='mixed') bank=buildMixedBank();
       else bank=buildBank(drill);
 
@@ -594,8 +575,6 @@
       }else{
         hudTimer.hidden=true; hudScore.hidden=true; hudBest.hidden=true;
         if(tick){ clearInterval(tick); tick=null; }
-        // Show personal best for π even in practice
-        if(drill==='pi'){ hudBest.hidden=false; bestEl.textContent=String(getBest('pi')); }
       }
       ask();
     }
@@ -610,8 +589,7 @@
         add2:'Two-digit addition', sub2:'Two-digit subtraction',
         squares:'Perfect squares', cubes:'Perfect cubes',
         roots:'Roots (√2,√3,√5)', exp2:'Powers of 2', exp3:'Powers of 3', exp4:'Powers of 4',
-        exp5:'Powers of 5', decimals:'Fractions → decimals',
-        pi:'π — How many can you remember?'
+        exp5:'Powers of 5', decimals:'Fractions → decimals'
       };
       return map[k]||k;
     }
@@ -619,7 +597,6 @@
     function pickQuestion(){
       if(drill==='add2') return pickAdd();
       if(drill==='sub2') return pickSub();
-      if(drill==='pi')   return {id:'pi', text:'Type digits of π after “3.” then press Enter', type:'pi'};
       return pickWeighted(bank);
     }
 
@@ -631,63 +608,11 @@
       fb.textContent=''; fb.className='';
     }
 
-    function checkPi(){
-      const raw=aEl.value.trim();
-      if(!raw){ fb.textContent='Type digits after 3. then press Enter'; fb.className=''; return; }
-
-      // Normalize: strip spaces; allow starting "3", "3.", "3,", or no leading 3
-      const s = raw.replace(/\s/g,'');
-      const digitsOnly = (s.match(/\d/g)||[]).join('');
-      if(digitsOnly.length===0){ fb.textContent='Digits only please (e.g., 3.14159…)'; fb.className=''; return; }
-
-      // Drop leading '3' if present -> we compare digits after the decimal
-      const typed = digitsOnly[0]==='3' ? digitsOnly.slice(1) : digitsOnly;
-
-      let correct=0;
-      const max= Math.min(typed.length, PI_DIGITS.length);
-      for(let i=0;i<max;i++){
-        if(typed[i]===PI_DIGITS[i]) correct++; else break;
-      }
-
-      // Update best (store the # of correct consecutive digits)
-      const prevBest = getBest('pi');
-      if(correct>prevBest) setBest('pi', correct);
-      bestEl.textContent=String(getBest('pi'));
-
-      // Build feedback
-      const pos = correct+1;
-      const mismatch = (correct<typed.length && correct<PI_DIGITS.length);
-      const expected = mismatch ? PI_DIGITS[correct] : null;
-      const got = mismatch ? typed[correct] : null;
-
-      fb.textContent = `You got ${correct} digit${correct===1?'':'s'} right in a row.`;
-      fb.className='correct';
-
-      aEl.disabled=true; awaiting=true;
-
-      const hint = mismatch
-        ? `<div class="small">Mismatch at digit #${pos} (after 3.): expected <b>${expected}</b>, got <b>${got}</b>.</div>`
-        : (typed.length>PI_DIGITS.length
-            ? `<div class="small">Great! You exceeded the built-in check (${PI_DIGITS.length} digits). Want me to extend it?</div>`
-            : '');
-
-      endpanel.innerHTML = `
-        <div class="row" style="flex-wrap:wrap; justify-content:center">
-          <span class="badge">Best: <b>${getBest('pi')}</b></span>
-          <button class="pill" id="again">Try Again</button>
-        </div>
-        ${hint}
-      `;
-      document.getElementById('again').addEventListener('click',()=>start('pi'));
-    }
-
     function check(){
       if(awaiting) return;
       const raw=aEl.value.trim(); if(!raw) return;
-
-      if(drill==='pi'){ checkPi(); return; }
-
       let ok=false;
+
       if(current.type==='float'){
         const user=parseFloat(raw.replace(/,/g,''));
         if(!Number.isNaN(user) && Math.abs(user-current.ans)<0.01) ok=true;
@@ -728,7 +653,6 @@
     }
 
     aEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); } });
-    const submitBtn=$('submitBtn');
     submitBtn.addEventListener('click', (e)=>{ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); });
 
     back.addEventListener('click', ()=>{
@@ -747,7 +671,6 @@
     }
     function closeReference(){ refModal.hidden=true; aEl.focus({preventScroll:true}); }
 
-    const refBtn=$('refBtn'), refModal=$('refModal'), refCloseBtn=$('refCloseBtn'), refCloseBg=$('refCloseBg'), refTitle=$('refTitle'), refContent=$('refContent');
     refBtn.addEventListener('click', openReference);
     refCloseBtn.addEventListener('click', closeReference);
     refCloseBg.addEventListener('click', closeReference);
@@ -811,7 +734,7 @@
       `;
       statsContainer.innerHTML = table;
 
-      const drills=['mixed','mult12','mult16','mult1216','mult15x','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals','pi'];
+      const drills=['mixed','mult12','mult16','mult1216','mult15x','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
       const bests = drills.map(d=>`${d}: ${getBest(d)}`).join('  ·  ');
       const bestDiv = document.createElement('div');
       bestDiv.className='small'; bestDiv.style.marginTop='.6rem';
