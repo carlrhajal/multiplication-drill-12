@@ -86,13 +86,19 @@
     .modal{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:16px; z-index:50;}
     .modal[hidden]{display:none}
     .backdrop{position:absolute; inset:0; background:rgba(0,0,0,.6)}
-    .sheet{position:relative; background:var(--surface); border-radius:16px; box-shadow:var(--shadow); width:min(900px, 100%); max-height:85vh; overflow:auto; padding:16px}
-    .sheet h3{margin:0 0 .6rem}
-    .close{position:absolute; top:10px; right:10px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:var(--text); padding:.35rem .55rem; cursor:pointer}
-    .refgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.6rem}
-    .card{background:#0f1a30; border:1px solid #223055; border-radius:12px; padding:.6rem .7rem}
-    .card h4{margin:.1rem 0 .35rem; font-size:1rem; color:#d6dbe6}
-    .card table{font-size:.95rem}
+    .sheet{position:relative; background:var(--surface); border-radius:16px; box-shadow:var(--shadow); width:min(980px, 100%); max-height:85vh; overflow:auto; padding:14px}
+    .sheet h3{margin:0 0 .5rem}
+
+    /* COMPACT reference visuals */
+    .refgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:.35rem}
+    .card{background:#0f1a30; border:1px solid #223055; border-radius:10px; padding:.4rem .5rem}
+    .card h4{margin:.05rem 0 .2rem; font-size:.95rem; color:#d6dbe6}
+    .card table{font-size:.9rem}
+    .card th,.card td{padding:.3rem .45rem; border-bottom:1px solid #1b2746}
+    .card tbody tr:hover{background:#0c1430}
+    .tighttable{font-size:.88rem}
+
+    .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:var(--text); padding:.3rem .5rem; cursor:pointer}
 
     /* Mobile tweaks */
     #submitBtn{display:none}
@@ -105,6 +111,7 @@
       #answer{width:100%}
       #submitBtn{display:inline-block; width:100%; margin-top:.6rem}
       #back{width:100%}
+      .refgrid{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}
     }
   </style>
 </head>
@@ -130,6 +137,8 @@
     <div class="grid">
       <button data-drill="mixed">Mixed (no addition; no zero-cancel)</button>
       <button data-drill="mult12">12 × (1–15)</button>
+      <button data-drill="mult16">16 × (1–11)</button><!-- NEW -->
+      <button data-drill="mult1216">12× & 16× (combo)</button><!-- NEW -->
       <button data-drill="mult15x">15 × (2–15)</button>
       <button data-drill="mult10">Multiplication 1–10 (no ×1, downweight easy)</button>
       <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
@@ -181,6 +190,8 @@
           <option value="">All</option>
           <option value="mixed">Mixed</option>
           <option value="mult12">12 ×</option>
+          <option value="mult16">16 ×</option><!-- NEW -->
+          <option value="mult1216">12× & 16×</option><!-- NEW -->
           <option value="mult15x">15 × (2–15)</option>
           <option value="mult10">Mult 1–10</option>
           <option value="mult15">Mult 1–15</option>
@@ -268,6 +279,17 @@
       // 12× table
       if(key==='mult12'){ for(let b=1;b<=15;b++){ const w=(b===1||b===2||b===5||b===10)?0.6:1; add(`12x${b}`,`12 × ${b}`,12*b,'int',w);} }
 
+      // 16× table (1–11) — NEW
+      if(key==='mult16'){ for(let b=1;b<=11;b++){ const w=(b===1||b===2||b===5||b===10)?0.6:1; add(`16x${b}`,`16 × ${b}`,16*b,'int',w);} }
+
+      // 12× & 16× combo — NEW
+      if(key==='mult1216'){
+        const b12=buildBank('mult12');
+        const b16=buildBank('mult16');
+        for(const it of b12.items){ items.push(it); weights.set(it.id, b12.weights.get(it.id)); }
+        for(const it of b16.items){ items.push(it); weights.set(it.id, b16.weights.get(it.id)); }
+      }
+
       // 15× table (2–15)
       if(key==='mult15x'){ for(let b=2;b<=15;b++){ const w=(b===2||b===5||b===10)?0.6:1; add(`15x${b}`,`15 × ${b}`,15*b,'int',w);} }
 
@@ -277,11 +299,11 @@
         for(let a=2;a<=N;a++){ for(let b=2;b<=N;b++){ const w=isSimple(a,b)?SIMPLE_BIAS:1; add(`${a}x${b}`,`${a} × ${b}`,a*b,'int',w);} }
       }
 
-      // Division (tables ≤20) with scaling (for standalone Division drill)
+      // Division (tables ≤20) with scaling (standalone Division drill)
       if(key==='div'){
         for(let d=2; d<=20; d++){
           for(let q=2; q<=20; q++){
-            for(let k=0; k<=2; k++){ // scaling to include 510 ÷ 3 etc.
+            for(let k=0; k<=2; k++){
               const dividend = d*q*Math.pow(10,k);
               const divisor = d;
               const ans = q*Math.pow(10,k);
@@ -292,20 +314,18 @@
         }
       }
 
-      // NEW: Basic division (no scaling) — used by Mixed to avoid any zero-cancel feel
+      // Basic division for Mixed (no scaling => no zero-cancel feel)
       if(key==='divBasic'){
         for(let d=2; d<=20; d++){
           for(let q=2; q<=20; q++){
-            const dividend = d*q;
-            const divisor = d;
-            const ans = q;
+            const dividend = d*q, divisor = d, ans = q;
             const w = (d===2||d===5||d===10)?SIMPLE_BIAS:1;
             add(`db${d}q${q}`, `${fmt(dividend)} ÷ ${fmt(divisor)}`, ans, 'int', w);
           }
         }
       }
 
-      // Division (zero-canceling) where dividend and divisor both have powers of 10
+      // Zero-canceling division (separate drill)
       if(key==='divZeros'){
         const D = [2,3,4,5,6,8,9,12,15];
         for(const d of D){
@@ -336,11 +356,11 @@
       return {items, weights};
     }
 
-    // Mixed (no addition; and now uses divBasic => no scaling, no zero-cancel)
+    // Mixed (no addition; uses divBasic => no scaling, no zero-cancel)
     function buildMixedBank(){
       const keys=[
-        'mult12','mult10','mult15',
-        'divBasic',                 // <— only basic division
+        'mult12','mult10','mult15', // keep main sets
+        'divBasic',                 // only basic division
         'squares','cubes','roots',
         'exp2','exp3','exp4','exp5',
         'decimals'
@@ -408,46 +428,52 @@
               else subBucket.push({key:item.id, a:item.a, b:item.b, count:2}); }
     }
 
-    /******** Reference (answer sheets) ********/
-    const REFERENCEABLE = new Set(['mult12','mult15x','mult10','mult15','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals']);
+    /******** Reference (compact answer sheets) ********/
+    const REFERENCEABLE = new Set(['mult12','mult16','mult1216','mult15x','mult10','mult15','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals']);
     const $=id=>document.getElementById(id);
     function hasReference(drill){ return REFERENCEABLE.has(drill); }
 
-    function thRow(labels){ return `<tr>${labels.map(c=>`<th>${c}</th>`).join('')}</tr>`; }
-    function tdRow(cells){ return `<tr>${cells.map(c=>`<td class="mono">${c}</td>`).join('')}</tr>`; }
+    const thRow = labels => `<tr>${labels.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+    const tdRow = cells  => `<tr>${cells.map(c=>`<td class="mono">${c}</td>`).join('')}</tr>`;
 
     function table12(){
-      const rows=[];
-      rows.push(thRow(['12 × b','Answer']));
+      const rows=[thRow(['12 × b','Ans'])];
       for(let b=1;b<=15;b++) rows.push(tdRow([`12 × ${b}`, 12*b]));
-      return `<div class="card"><h4>12× (1–15)</h4><table>${rows.join('')}</table></div>`;
+      return `<div class="card"><h4>12×</h4><table class="tighttable">${rows.join('')}</table></div>`;
+    }
+    function table16(){
+      const rows=[thRow(['16 × b','Ans'])];
+      for(let b=1;b<=11;b++) rows.push(tdRow([`16 × ${b}`, 16*b]));
+      return `<div class="card"><h4>16×</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
     function table15x(){
-      const rows=[];
-      rows.push(thRow(['15 × b','Answer']));
+      const rows=[thRow(['15 × b','Ans'])];
       for(let b=2;b<=15;b++) rows.push(tdRow([`15 × ${b}`, 15*b]));
-      return `<div class="card"><h4>15× (2–15)</h4><table>${rows.join('')}</table></div>`;
+      return `<div class="card"><h4>15× (2–15)</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
     function tableMultMatrix(N){
-      const hdr = ['×', ...Array.from({length:N-1},(_,i)=>i+2)];
+      const hdr=['×', ...Array.from({length:N-1},(_,i)=>i+2)];
       const rows=[thRow(hdr)];
       for(let a=2;a<=N;a++){
         const cells=[a, ...Array.from({length:N-1},(_,j)=> (a*(j+2)))];
         rows.push(tdRow(cells));
       }
-      return `<div class="card"><h4>${N===10?'Multiplication 2–10':'Multiplication 2–15'}</h4><table>${rows.join('')}</table></div>`;
+      return `<div class="card"><h4>${N===10?'Mult 2–10':'Mult 2–15'}</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
     function tableList(title, pairs){
-      const rows=[thRow([title,'Answer'])];
+      const rows=[thRow([title,'Ans'])];
       for(const [label,ans] of pairs) rows.push(tdRow([label, ans]));
-      return `<div class="card"><h4>${title}</h4><table>${rows.join('')}</table></div>`;
+      return `<div class="card"><h4>${title}</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
 
     function getReferenceHTML(drill){
-      if(drill==='mult12') return `<div class="refgrid">${table12()}</div>`;
-      if(drill==='mult15x') return `<div class="refgrid">${table15x()}</div>`;
-      if(drill==='mult10') return `<div class="refgrid">${tableMultMatrix(10)}</div>`;
-      if(drill==='mult15') return `<div class="refgrid">${tableMultMatrix(15)}</div>`;
+      // Show everything relevant for the chosen drill, in a compact grid
+      if(drill==='mult12')   return `<div class="refgrid">${table12()}</div>`;
+      if(drill==='mult16')   return `<div class="refgrid">${table16()}</div>`;
+      if(drill==='mult1216') return `<div class="refgrid">${table12()}${table16()}</div>`;
+      if(drill==='mult15x')  return `<div class="refgrid">${table15x()}</div>`;
+      if(drill==='mult10')   return `<div class="refgrid">${tableMultMatrix(10)}</div>`;
+      if(drill==='mult15')   return `<div class="refgrid">${tableMultMatrix(15)}</div>`;
       if(drill==='squares'){
         const pairs = Array.from({length:15},(_,i)=>[`${i+1}²`, (i+1)**2]);
         return `<div class="refgrid">${tableList('Squares 1²–15²', pairs)}</div>`;
@@ -536,7 +562,7 @@
       menu.hidden=true; settings.hidden=true; quiz.hidden=false; endpanel.innerHTML='';
       fb.textContent=''; fb.className=''; hud.hidden=false; hudDrill.textContent=labelFor(drill);
 
-      // Show/hide Reference button
+      // Reference button visibility
       refBtn.hidden=!hasReference(drill);
 
       if(isSprint){
@@ -556,7 +582,8 @@
     function labelFor(k){
       const map={
         mixed:'Mixed (no addition; no zero-cancel)',
-        mult12:'12 × (1–15)', mult15x:'15 × (2–15)',
+        mult12:'12 × (1–15)', mult16:'16 × (1–11)', mult1216:'12× & 16×',
+        mult15x:'15 × (2–15)',
         mult10:'Mult 1–10', mult15:'Mult 1–15',
         div:'Division (≤20 tables)', divZeros:'Division (zero-canceling)',
         add2:'Two-digit addition', sub2:'Two-digit subtraction',
@@ -707,7 +734,7 @@
       `;
       statsContainer.innerHTML = table;
 
-      const drills=['mixed','mult12','mult15x','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
+      const drills=['mixed','mult12','mult16','mult1216','mult15x','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'];
       const bests = drills.map(d=>`${d}: ${getBest(d)}`).join('  ·  ');
       const bestDiv = document.createElement('div');
       bestDiv.className='small'; bestDiv.style.marginTop='.6rem';
