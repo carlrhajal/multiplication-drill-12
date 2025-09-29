@@ -98,7 +98,7 @@
     .card tbody tr:hover{background:#0c1430}
     .tighttable{font-size:.88rem}
 
-    .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:var(--text); padding:.3rem .5rem; cursor:pointer}
+    .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:#text; padding:.3rem .5rem; cursor:pointer}
 
     /* Mobile tweaks */
     #submitBtn{display:none}
@@ -142,6 +142,8 @@
       <button data-drill="mult15x">15 × (2–15)</button>
       <button data-drill="mult10">Multiplication 1–10 (no ×1, downweight easy)</button>
       <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
+      <button data-drill="addTable">Addition facts (1–15)</button><!-- NEW -->
+      <button data-drill="subTable">Subtraction facts (≤15)</button><!-- NEW -->
       <button data-drill="div">Division (tables ≤20)</button>
       <button data-drill="divZeros">Division (zero-canceling)</button>
       <button data-drill="add2">Two-digit addition</button>
@@ -196,6 +198,8 @@
           <option value="mult15x">15 × (2–15)</option>
           <option value="mult10">Mult 1–10</option>
           <option value="mult15">Mult 1–15</option>
+          <option value="addTable">Addition facts</option><!-- NEW -->
+          <option value="subTable">Subtraction facts</option><!-- NEW -->
           <option value="div">Division</option>
           <option value="divZeros">Division (zero-canceling)</option>
           <option value="add2">Addition</option>
@@ -291,6 +295,26 @@
     function buildBank(key){
       const items=[], weights=new Map();
       const add=(id,text,ans,type='int',w=1)=>{ items.push({id,text,ans,type}); weights.set(id,w); };
+
+      // Addition facts 1–15
+      if(key==='addTable'){
+        for(let a=1;a<=15;a++){
+          for(let b=1;b<=15;b++){
+            const w = isSimple(a,b) ? SIMPLE_BIAS : 1;
+            add(`a${a}b${b}`, `${a} + ${b}`, a+b, 'int', w);
+          }
+        }
+      }
+
+      // Subtraction facts within 1..15, a>=b
+      if(key==='subTable'){
+        for(let a=1;a<=15;a++){
+          for(let b=1;b<=a;b++){
+            const w = isSimple(a,b) ? SIMPLE_BIAS : 1;
+            add(`a${a}b${b}`, `${a} − ${b}`, a-b, 'int', w);
+          }
+        }
+      }
 
       // 12×
       if(key==='mult12'){ for(let b=1;b<=15;b++){ const w=(b===1||b===2||b===5||b===10)?0.6:1; add(`12x${b}`,`12 × ${b}`,12*b,'int',w);} }
@@ -438,7 +462,11 @@
     }
 
     /******** Reference (compact answer sheets) ********/
-    const REFERENCEABLE = new Set(['mult12','mult16','mult1216','mult15x','mult10','mult15','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals']);
+    const REFERENCEABLE = new Set([
+      'mult12','mult16','mult1216','mult15x','mult10','mult15',
+      'addTable','subTable', /* NEW */
+      'squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'
+    ]);
     const $=id=>document.getElementById(id);
     function hasReference(drill){ return REFERENCEABLE.has(drill); }
 
@@ -469,6 +497,26 @@
       }
       return `<div class="card"><h4>${N===10?'Mult 2–10':'Mult 2–15'}</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
+    function tableAddMatrix(N=15){
+      const hdr=['+', ...Array.from({length:N},(_,i)=>i+1)];
+      const rows=[thRow(hdr)];
+      for(let a=1;a<=N;a++){
+        const cells=[a, ...Array.from({length:N},(_,j)=> a+(j+1))];
+        rows.push(tdRow(cells));
+      }
+      return `<div class="card"><h4>Add 1–15</h4><table class="tighttable">${rows.join('')}</table></div>`;
+    }
+    function tableSubMatrix(N=15){
+      const hdr=['−', ...Array.from({length:N},(_,i)=>i+1)];
+      const rows=[thRow(hdr)];
+      for(let a=1;a<=N;a++){
+        const cells=[a, ...Array.from({length:N},(_,j)=> {
+          const b=j+1; return (a>=b)? (a-b): '—';
+        })];
+        rows.push(tdRow(cells));
+      }
+      return `<div class="card"><h4>Sub ≤15</h4><table class="tighttable">${rows.join('')}</table></div>`;
+    }
     function tableList(title, pairs){
       const rows=[thRow([title,'Ans'])];
       for(const [label,ans] of pairs) rows.push(tdRow([label, ans]));
@@ -482,6 +530,8 @@
       if(drill==='mult15x')  return `<div class="refgrid">${table15x()}</div>`;
       if(drill==='mult10')   return `<div class="refgrid">${tableMultMatrix(10)}</div>`;
       if(drill==='mult15')   return `<div class="refgrid">${tableMultMatrix(15)}</div>`;
+      if(drill==='addTable') return `<div class="refgrid">${tableAddMatrix(15)}</div>`;     /* NEW */
+      if(drill==='subTable') return `<div class="refgrid">${tableSubMatrix(15)}</div>`;     /* NEW */
       if(drill==='squares'){
         const pairs = Array.from({length:15},(_,i)=>[`${i+1}²`, (i+1)**2]);
         return `<div class="refgrid">${tableList('Squares 1²–15²', pairs)}</div>`;
@@ -594,6 +644,8 @@
         mixed:'Mixed (no addition; no zero-cancel)',
         mult12:'12 × (1–15)', mult16:'16 × (1–11)', mult1216:'12× & 16×',
         mult15x:'15 × (2–15)', mult10:'Mult 1–10', mult15:'Mult 1–15',
+        addTable:'Addition facts (1–15)',  /* NEW */
+        subTable:'Subtraction facts (≤15)',/* NEW */
         div:'Division (≤20 tables)', divZeros:'Division (zero-canceling)',
         add2:'Two-digit addition', sub2:'Two-digit subtraction',
         squares:'Perfect squares', cubes:'Perfect cubes',
@@ -791,7 +843,7 @@
       `;
       statsContainer.innerHTML = table;
 
-      const drills=['mixed','mult12','mult16','mult1216','mult15x','mult10','mult15','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals','pi'];
+      const drills=['mixed','mult12','mult16','mult1216','mult15x','mult10','mult15','addTable','subTable','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals','pi'];
       const bests = drills.map(d=>`${d}: ${getBest(d)}`).join('  ·  ');
       const bestDiv = document.createElement('div');
       bestDiv.className='small'; bestDiv.style.marginTop='.6rem';
