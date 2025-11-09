@@ -62,7 +62,7 @@
     }
     #answer{
       width:min(420px, 100%); padding:1rem .9rem; font-size:clamp(1.1rem, 5.5vw, 1.25rem);
-      text-align:center; border:2px solid #2a3558; border-radius:12px; background:#0e1730; color:var(--text);
+      text-align:center; border:2px solid #2a3558; border-radius:12px; background:#0e1730; color:#fff;
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.03); min-height:52px;
     }
     #answer:disabled{opacity:.7}
@@ -72,7 +72,7 @@
     .visually-hidden{position:absolute; left:-9999px}
 
     #settings .controls{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin:.5rem 0 .75rem}
-    select{background:#0e1730; color:var(--text); border:1px solid #2a3558; border-radius:10px; padding:.6rem .7rem; min-height:44px;}
+    select{background:#0e1730; color:#fff; border:1px solid #2a3558; border-radius:10px; padding:.6rem .7rem; min-height:44px;}
     table{width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.95rem}
     th,td{padding:.55rem .6rem; text-align:left; border-bottom:1px solid #1e2a4a}
     th{color:#b9c2d0; font-weight:600}
@@ -142,13 +142,13 @@
       <button data-drill="mult15x">15 × (2–15)</button>
       <button data-drill="mult10">Multiplication 1–10 (no ×1, downweight easy)</button>
       <button data-drill="mult15">Multiplication 1–15 (no ×1, downweight easy)</button>
-      <button data-drill="addTable">Addition facts (1–15)</button><!-- NEW -->
-      <button data-drill="subTable">Subtraction facts (≤15)</button><!-- NEW -->
+      <button data-drill="addTable">Addition facts (1–15)</button>
+      <button data-drill="subTable">Subtraction facts (≤15)</button>
       <button data-drill="div">Division (tables ≤20)</button>
       <button data-drill="divZeros">Division (zero-canceling)</button>
       <button data-drill="add2">Two-digit addition</button>
       <button data-drill="sub2">Two-digit subtraction</button>
-      <button data-drill="squares">Perfect squares (1²–15²)</button>
+      <button data-drill="squares">Perfect squares (1²–25²)</button><!-- updated label -->
       <button data-drill="cubes">Perfect cubes (1³–10³)</button>
       <button data-drill="roots">√2, √3, √5 (3 decimals)</button>
       <button data-drill="exp2">Powers of 2 (1–10)</button>
@@ -198,13 +198,13 @@
           <option value="mult15x">15 × (2–15)</option>
           <option value="mult10">Mult 1–10</option>
           <option value="mult15">Mult 1–15</option>
-          <option value="addTable">Addition facts</option><!-- NEW -->
-          <option value="subTable">Subtraction facts</option><!-- NEW -->
+          <option value="addTable">Addition facts</option>
+          <option value="subTable">Subtraction facts</option>
           <option value="div">Division</option>
           <option value="divZeros">Division (zero-canceling)</option>
           <option value="add2">Addition</option>
           <option value="sub2">Subtraction</option>
-          <option value="squares">Squares</option>
+          <option value="squares">Squares</option><!-- label stays short here -->
           <option value="cubes">Cubes</option>
           <option value="roots">Roots</option>
           <option value="exp2">2^</option>
@@ -382,9 +382,23 @@
         }
       }
 
+      // Squares 1..25 (forward and reverse √)
+      if(key==='squares'){
+        for(let n=1;n<=25;n++){
+          add(`sq${n}`, `${n}²`, n*n, 'int');          // forward: n² → n²
+          add(`rt${n}`, `√(${n*n})`, n, 'int');        // reverse: √(n²) → n
+        }
+      }
+
+      // Cubes 1..10 (forward and reverse ∛)
+      if(key==='cubes'){
+        for(let n=1;n<=10;n++){
+          add(`cu${n}`, `${n}³`, n*n*n, 'int');        // forward: n³ → n³
+          add(`crt${n}`, `∛(${n*n*n})`, n, 'int');     // reverse: ∛(n³) → n
+        }
+      }
+
       // Other drills
-      if(key==='squares'){ for(let n=1;n<=15;n++) add(`sq${n}`,`${n}²`,n*n,'int'); }
-      if(key==='cubes'){ for(let n=1;n<=10;n++) add(`cu${n}`,`${n}³`,n*n*n,'int'); }
       if(key==='roots'){ [2,3,5].forEach(r=>add(`r${r}`,`√${r} (3 dp)`,parseFloat(Math.sqrt(r).toFixed(3)),'float')); }
       if(key==='exp2'){ for(let e=1;e<=10;e++) add(`2^${e}`,`2^${e}`,2**e,'int'); }
       if(key==='exp3'){ for(let e=1;e<=5;e++) add(`3^${e}`,`3^${e}`,3**e,'int'); }
@@ -404,7 +418,7 @@
         for (const it of b.items){
           const id=`${k}:${it.id}`;
           items.push({id, text:it.text, ans:it.ans, type:it.type, src:k});
-          weights.set(id, b.weights.get(it.id));
+          weights.set(id, b.weights.get(it.id) ?? 1);
         }
       }
       return {items,weights};
@@ -464,7 +478,7 @@
     /******** Reference (compact answer sheets) ********/
     const REFERENCEABLE = new Set([
       'mult12','mult16','mult1216','mult15x','mult10','mult15',
-      'addTable','subTable', /* NEW */
+      'addTable','subTable',
       'squares','cubes','roots','exp2','exp3','exp4','exp5','decimals'
     ]);
     const $=id=>document.getElementById(id);
@@ -530,11 +544,11 @@
       if(drill==='mult15x')  return `<div class="refgrid">${table15x()}</div>`;
       if(drill==='mult10')   return `<div class="refgrid">${tableMultMatrix(10)}</div>`;
       if(drill==='mult15')   return `<div class="refgrid">${tableMultMatrix(15)}</div>`;
-      if(drill==='addTable') return `<div class="refgrid">${tableAddMatrix(15)}</div>`;     /* NEW */
-      if(drill==='subTable') return `<div class="refgrid">${tableSubMatrix(15)}</div>`;     /* NEW */
+      if(drill==='addTable') return `<div class="refgrid">${tableAddMatrix(15)}</div>`;
+      if(drill==='subTable') return `<div class="refgrid">${tableSubMatrix(15)}</div>`;
       if(drill==='squares'){
-        const pairs = Array.from({length:15},(_,i)=>[`${i+1}²`, (i+1)**2]);
-        return `<div class="refgrid">${tableList('Squares 1²–15²', pairs)}</div>`;
+        const pairs = Array.from({length:25},(_,i)=>[`${i+1}²`, (i+1)**2]); // up to 25²
+        return `<div class="refgrid">${tableList('Squares 1²–25²', pairs)}</div>`;
       }
       if(drill==='cubes'){
         const pairs = Array.from({length:10},(_,i)=>[`${i+1}³`, (i+1)**3]);
@@ -644,11 +658,12 @@
         mixed:'Mixed (no addition; no zero-cancel)',
         mult12:'12 × (1–15)', mult16:'16 × (1–11)', mult1216:'12× & 16×',
         mult15x:'15 × (2–15)', mult10:'Mult 1–10', mult15:'Mult 1–15',
-        addTable:'Addition facts (1–15)',  /* NEW */
-        subTable:'Subtraction facts (≤15)',/* NEW */
+        addTable:'Addition facts (1–15)',
+        subTable:'Subtraction facts (≤15)',
         div:'Division (≤20 tables)', divZeros:'Division (zero-canceling)',
         add2:'Two-digit addition', sub2:'Two-digit subtraction',
-        squares:'Perfect squares', cubes:'Perfect cubes',
+        squares:'Perfect squares (1²–25²)', // updated label
+        cubes:'Perfect cubes (1³–10³)',
         roots:'Roots (√2,√3,√5)', exp2:'Powers of 2', exp3:'Powers of 3', exp4:'Powers of 4',
         exp5:'Powers of 5', decimals:'Fractions → decimals',
         pi:'π — How many can you remember?'
