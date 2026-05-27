@@ -266,7 +266,7 @@
   </div>
 
   <script>
-    const VERSION='v26.05.27-2';
+    const VERSION='v26.05.27-3';
     document.getElementById('versionBadge').textContent=VERSION;
 
     /******** Helpers & constants ********/
@@ -370,6 +370,7 @@
     const setBest=(d,v)=> localStorage.setItem(hiscoreKey(d), String(v));
     function clearScores(){ Object.keys(localStorage).forEach(k=>{ if(k.startsWith('hiscore_')||k.startsWith('hshistory_')) localStorage.removeItem(k); }); }
     function getTodayBest(d){ const h=getHistory(d); if(!h.length) return 0; const midnight=new Date(); midnight.setHours(0,0,0,0); const since=midnight.getTime(); const sc=h.filter(e=>e.ts>=since).map(e=>e.score); return sc.length?Math.max(...sc):0; }
+    function isTodayPR(d){ const h=getHistory(d); if(!h.length) return false; const midnight=new Date(); midnight.setHours(0,0,0,0); const t=midnight.getTime(); const todayBest=Math.max(0,...h.filter(e=>e.ts>=t).map(e=>e.score)); const prevBest=Math.max(0,...h.filter(e=>e.ts<t).map(e=>e.score)); return todayBest>0&&todayBest>prevBest; }
 
     /******** Score history ********/
     const historyKey=d=>`hshistory_${d}`;
@@ -784,16 +785,19 @@
         const bStr=best>0?best:'—', tStr=todayB>0?todayB:'—';
         const aStr=accPct!==null?accPct+'%':'—',  taStr=tAccPct!==null?tAccPct+'%':'—';
         const mStr=avgMs!==null?(avgMs/1000).toFixed(1)+'s':'—', tmStr=tAvgMs!==null?(tAvgMs/1000).toFixed(1)+'s':'—';
-        const badge=(v,bg)=>`<span style="background:${bg};border-radius:4px;padding:.03rem .3rem;font-weight:700;min-width:1.6rem;display:inline-block;text-align:center">${v}</span>`;
+        const pr=isTodayPR(d);
+        const tScoreEl=pr
+          ?`<span style="background:rgba(22,163,74,.38);border-radius:3px;padding:.02rem .28rem;font-weight:700;color:#4ade80">${tStr}</span>`
+          :`<span style="font-weight:600">${tStr}</span>`;
         btn.innerHTML=`${labelFor(d)}<span style="display:block;font-size:.71rem;font-weight:400;margin-top:.2rem;line-height:1.7;opacity:.75">
           <span style="display:flex;align-items:center;gap:.3rem">
             <span style="font-size:.62rem;opacity:.55;min-width:2.8rem">All:</span>
-            ${badge(bStr,'rgba(59,130,246,.3)')}
+            <span style="font-weight:600">${bStr}</span>
             <span>${aStr}</span><span style="opacity:.35">·</span><span>${mStr}</span>
           </span>
           <span style="display:flex;align-items:center;gap:.3rem">
             <span style="font-size:.62rem;opacity:.55;min-width:2.8rem">Today:</span>
-            ${badge(tStr,'rgba(250,204,21,.25)')}
+            ${tScoreEl}
             <span>${taStr}</span><span style="opacity:.35">·</span><span>${tmStr}</span>
           </span>
         </span>`;
