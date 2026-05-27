@@ -158,6 +158,11 @@
       <button data-drill="decimals">Fractions → decimals</button>
       <button data-drill="pi">π — How many can you remember?</button>
     </div>
+    <div id="sprintRecords" hidden>
+      <hr style="border:none;border-top:1px solid var(--muted);margin:.75rem 0 .5rem">
+      <div class="small" style="margin-bottom:.5rem">Your sprint records</div>
+      <div id="sprintRecordsGrid" style="display:flex;flex-wrap:wrap;gap:.4rem"></div>
+    </div>
   </div>
 
   <!-- QUIZ -->
@@ -610,7 +615,21 @@
       if(getMode()==='sprint' && d){ bestBadge.hidden=false; bestMenu.textContent=getBest(d); }
       else bestBadge.hidden=true;
     }
-    radios.forEach(r=>r.addEventListener('change',()=>refreshMenuBestFor(lastHoverDrill)));
+    function renderSprintRecords(){
+      const panel=$('sprintRecords'), grid=$('sprintRecordsGrid');
+      if(getMode()!=='sprint'){ panel.hidden=true; return; }
+      const allDrills=['mixed','mult12','mult16','mult1216','mult15x','mult10','mult15','addTable','subTable','div','divZeros','add2','sub2','squares','cubes','roots','exp2','exp3','exp4','exp5','decimals','pi'];
+      const entries=allDrills.map(d=>({d,best:getBest(d)})).filter(x=>x.best>0);
+      if(entries.length===0){ panel.hidden=true; return; }
+      panel.hidden=false;
+      grid.innerHTML=entries.map(({d,best})=>
+        `<span class="badge" style="display:inline-flex;gap:.4rem;align-items:center;border-radius:10px;padding:.3rem .7rem">
+          <span style="color:var(--subtle);font-size:.82rem">${labelFor(d)}</span>
+          <b>${best}</b>
+        </span>`
+      ).join('');
+    }
+    radios.forEach(r=>r.addEventListener('change',()=>{ refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); }));
 
     document.querySelectorAll('#menu [data-drill]').forEach(btn=>{
       btn.addEventListener('mouseenter',()=>{ lastHoverDrill=btn.dataset.drill; refreshMenuBestFor(lastHoverDrill); });
@@ -621,7 +640,7 @@
     openSettingsBtn.addEventListener('click',()=>{ menu.hidden=true; quiz.hidden=true; settings.hidden=false; renderStats(); });
     closeSettingsBtn.addEventListener('click',()=>{ settings.hidden=true; menu.hidden=false; });
     clearStatsBtn.addEventListener('click',()=>{ clearMistakeStats(); renderStats(); });
-    clearScoresBtn.addEventListener('click',()=>{ clearScores(); renderStats(); refreshMenuBestFor(lastHoverDrill); });
+    clearScoresBtn.addEventListener('click',()=>{ clearScores(); renderStats(); refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); });
     fltDrill.addEventListener('change',renderStats);
     fltSort.addEventListener('change',renderStats);
 
@@ -786,6 +805,7 @@
       quiz.hidden=true; menu.hidden=false; hud.hidden=true;
       aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
       refreshMenuBestFor(drill);
+      renderSprintRecords();
       drill=null; bank=null; current=null; score=0;
     });
 
