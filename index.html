@@ -266,7 +266,7 @@
   </div>
 
   <script>
-    const VERSION='v26.05.27-3';
+    const VERSION='v26.05.27-4';
     document.getElementById('versionBadge').textContent=VERSION;
 
     /******** Helpers & constants ********/
@@ -786,9 +786,9 @@
         const aStr=accPct!==null?accPct+'%':'—',  taStr=tAccPct!==null?tAccPct+'%':'—';
         const mStr=avgMs!==null?(avgMs/1000).toFixed(1)+'s':'—', tmStr=tAvgMs!==null?(tAvgMs/1000).toFixed(1)+'s':'—';
         const pr=isTodayPR(d);
-        const tScoreEl=pr
-          ?`<span style="background:rgba(22,163,74,.38);border-radius:3px;padding:.02rem .28rem;font-weight:700;color:#4ade80">${tStr}</span>`
-          :`<span style="font-weight:600">${tStr}</span>`;
+        const accUp=tAccPct!==null&&accPct!==null&&tAccPct>accPct;
+        const timeUp=tAvgMs!==null&&avgMs!==null&&tAvgMs<avgMs;
+        const g=(v)=>`<span style="background:rgba(22,163,74,.38);border-radius:3px;padding:.02rem .28rem;font-weight:700;color:#4ade80">${v}</span>`;
         btn.innerHTML=`${labelFor(d)}<span style="display:block;font-size:.71rem;font-weight:400;margin-top:.2rem;line-height:1.7;opacity:.75">
           <span style="display:flex;align-items:center;gap:.3rem">
             <span style="font-size:.62rem;opacity:.55;min-width:2.8rem">All:</span>
@@ -797,8 +797,8 @@
           </span>
           <span style="display:flex;align-items:center;gap:.3rem">
             <span style="font-size:.62rem;opacity:.55;min-width:2.8rem">Today:</span>
-            ${tScoreEl}
-            <span>${taStr}</span><span style="opacity:.35">·</span><span>${tmStr}</span>
+            ${pr?g(tStr):`<span style="font-weight:600">${tStr}</span>`}
+            ${accUp?g(taStr):`<span>${taStr}</span>`}<span style="opacity:.35">·</span>${timeUp?g(tmStr):`<span>${tmStr}</span>`}
           </span>
         </span>`;
       });
