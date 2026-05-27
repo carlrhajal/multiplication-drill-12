@@ -268,7 +268,7 @@
   </div>
 
   <script>
-    const VERSION='v26.05.27-5';
+    const VERSION='v26.05.27-6';
     document.getElementById('versionBadge').textContent=VERSION;
 
     /******** Helpers & constants ********/
@@ -508,7 +508,11 @@
 
       if(key==='primes'){
         const PS=new Set([2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]);
-        for(let n=1;n<=50;n++) add(`p${n}`,`Is ${n} prime?  (1 = yes  /  0 = no)`,PS.has(n)?1:0,'int');
+        // Skip multiples of 2 and 5 — trivially not prime (even / ends in 0 or 5)
+        for(let n=1;n<=50;n++){
+          if(n%2===0||n%5===0) continue;
+          add(`p${n}`,`Is ${n} prime?  (1 = yes  /  0 = no)`,PS.has(n)?1:0,'int');
+        }
       }
 
       return {items, weights};
@@ -719,7 +723,7 @@
 
     function tablePrimes(mdata){
       const PS=new Set([2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]);
-      let html='<div class="card" style="width:100%"><h4>Primes 1–100 <span style="font-weight:400;font-size:.78rem;opacity:.6">(bold = prime · colored = your accuracy for 1–50)</span></h4>';
+      let html='<div class="card" style="width:100%"><h4>Primes 1–100 <span style="font-weight:400;font-size:.78rem;opacity:.6">(bold = prime · drill skips ×2 and ×5 · colors = your accuracy)</span></h4>';
       html+='<table class="tighttable"><tbody>';
       for(let row=0;row<10;row++){
         html+='<tr>';
