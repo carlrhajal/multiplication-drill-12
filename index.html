@@ -553,6 +553,19 @@
       const pct=Math.round(100-(row.wrongs/row.attempts)*100);
       return pct>=90?'background:rgba(22,163,74,.18)':pct>=60?'background:rgba(234,179,8,.18)':'background:rgba(239,68,68,.18)';
     }
+    function combinedStyleMatrix(mdata, tdata, drillId, itemId, baselineMs){
+      const mrow=mdata[`${drillId}|${itemId}`];
+      if(!mrow||!mrow.attempts) return '';
+      const acc=Math.round(100-(mrow.wrongs/mrow.attempts)*100);
+      if(acc<60) return 'background:rgba(239,68,68,.18)';
+      const accScore=acc/100;
+      const trow=tdata[`${drillId}|${itemId}`];
+      if(!trow||!trow.count||!baselineMs)
+        return acc>=90?'background:rgba(22,163,74,.18)':'background:rgba(234,179,8,.18)';
+      const ratio=(trow.totalMs/trow.count)/baselineMs;
+      const combined=0.6*accScore+0.4*Math.min(1,1/ratio);
+      return combined>=0.85?'background:rgba(22,163,74,.18)':combined>=0.60?'background:rgba(234,179,8,.18)':'background:rgba(239,68,68,.18)';
+    }
 
     /******** Reference (compact answer sheets) ********/
     const REFERENCEABLE = new Set([
@@ -600,11 +613,17 @@
       return `<div class="card"><h4>${N===10?'Mult 2–10':'Mult 2–15'}</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
     function tableAddMatrix(N=15, mdata){
+      const tdata=loadTiming();
+      let baselineMs=null;
+      for(let a=1;a<=N;a++) for(let b=1;b<=N;b++){
+        const r=tdata[`addTable|a${a}b${b}`];
+        if(r&&r.count>=2){ const avg=r.totalMs/r.count; if(baselineMs===null||avg<baselineMs) baselineMs=avg; }
+      }
       const hdr=['+',...Array.from({length:N},(_,i)=>i+1)];
       const rows=[thRow(hdr)];
       for(let a=1;a<=N;a++){
         const cells=`<td>${a}</td>`+Array.from({length:N},(_,j)=>{
-          const b=j+1, s=accuracyStyleMatrix(mdata,'addTable',`a${a}b${b}`);
+          const b=j+1, s=combinedStyleMatrix(mdata,tdata,'addTable',`a${a}b${b}`,baselineMs);
           return `<td class="mono"${s?` style="${s}"`:''} title="${a}+${b}=${a+b}">${a+b}</td>`;
         }).join('');
         rows.push(`<tr>${cells}</tr>`);
@@ -869,7 +888,7 @@
         if(!Number.isNaN(user) && user===current.ans) ok=true;
       }
 
-      if(drill==='mult12') recordTiming('mult12',current.id,Date.now()-questionStartTime);
+      if(drill==='mult12'||drill==='addTable') recordTiming(drill,current.id,Date.now()-questionStartTime);
       recordAttempt(drill,current,ok);
       if(drill==='add2') recordAddResult(current,ok);
       else if(drill==='sub2') recordSubResult(current,ok);
