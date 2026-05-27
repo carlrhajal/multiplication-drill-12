@@ -799,17 +799,20 @@
 
       if(isSprint){
         score=0; scoreEl.textContent='0';
-        hudTimer.hidden=false; hudScore.hidden=false; hudBest.hidden=false;
-        timeLeft=SPRINT_SECONDS; tLeftEl.textContent=String(timeLeft);
+        hudTimer.hidden=true; hudScore.hidden=true; hudBest.hidden=false;
         bestEl.textContent=String(getBest(drill));
-        if(tick) clearInterval(tick);
-        tick=setInterval(()=>{ timeLeft--; tLeftEl.textContent=String(timeLeft); if(timeLeft<=0){ finishSprint(); }},1000);
+        qEl.textContent=''; aEl.disabled=true; aEl.value='';
+        endpanel.innerHTML=`<div style="text-align:center;padding:1.2rem 0 .5rem">
+          <div style="color:var(--subtle);font-size:.95rem;margin-bottom:.9rem">60-second sprint — ready when you are</div>
+          <button class="pill" id="startSprintBtn" style="font-size:1.05rem;padding:.85rem 2.5rem">&#9654; Start</button>
+        </div>`;
+        document.getElementById('startSprintBtn').addEventListener('click', beginSprint);
       }else{
         hudTimer.hidden=true; hudScore.hidden=true; hudBest.hidden=true;
         if(tick){ clearInterval(tick); tick=null; }
         if(drill==='pi'){ hudBest.hidden=false; bestEl.textContent=String(getBest('pi')); }
+        ask();
       }
-      ask();
     }
 
     function labelFor(k){
@@ -923,6 +926,16 @@
       fb.className = ok ? 'correct' : 'wrong';
       aEl.disabled=true; awaiting=true;
       setTimeout(()=>{ awaiting=false; ask(); }, ok?650:1100);
+    }
+
+    function beginSprint(){
+      endpanel.innerHTML='';
+      hudTimer.hidden=false; hudScore.hidden=false; hudBest.hidden=false;
+      timeLeft=SPRINT_SECONDS; tLeftEl.textContent=String(timeLeft);
+      if(tick) clearInterval(tick);
+      tick=setInterval(()=>{ timeLeft--; tLeftEl.textContent=String(timeLeft); if(timeLeft<=0){ finishSprint(); }},1000);
+      aEl.disabled=false;
+      ask();
     }
 
     function finishSprint(){
