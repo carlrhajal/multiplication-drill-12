@@ -310,8 +310,9 @@
       const row=data[idKey] || {text:item.text, drill:base, wrongs:0, attempts:0, lastMiss:0};
       row.attempts++; if(!ok){ row.wrongs++; row.lastMiss=Date.now(); }
       row.text=item.text; data[idKey]=row; saveMistakes(data);
+      recordDailyAcc(base,item.id,ok);
     }
-    const clearMistakeStats=()=>{ localStorage.removeItem(MKEY); localStorage.removeItem('timing_v1'); localStorage.removeItem('timing_last_v1'); };
+    const clearMistakeStats=()=>{ ['mistakes_v1','timing_v1','timing_last_v1','acc_daily_v1','timing_daily_v1'].forEach(k=>localStorage.removeItem(k)); };
 
     /******** Response time tracking (mult12) ********/
     const TKEY='timing_v1';
@@ -322,16 +323,13 @@
     let sessionTimings={};
     function recordTiming(drill,itemId,ms){
       if(ms<150||ms>25000) return;
-      // all-time
       const data=loadTiming();
       const key=`${drill}|${itemId}`;
       const row=data[key]||{totalMs:0,count:0};
       row.totalMs+=ms; row.count++;
       data[key]=row; saveTiming(data);
-      // current session
-      const sr=sessionTimings[itemId]||{totalMs:0,count:0};
-      sr.totalMs+=ms; sr.count++;
-      sessionTimings[itemId]=sr;
+      if(drill==='mult12'){ const sr=sessionTimings[itemId]||{totalMs:0,count:0}; sr.totalMs+=ms; sr.count++; sessionTimings[itemId]=sr; }
+      recordDailyTiming(drill,itemId,ms);
     }
     function flushSessionTimings(){
       if(drill==='mult12' && Object.keys(sessionTimings).length>0)
@@ -345,6 +343,25 @@
       const ratio=avgMs/baseAvgMs;
       const color=ratio>=2.0?'var(--bad)':ratio>=1.4?'#eab308':'#6aaa6a';
       return `<td style="text-align:center;white-space:nowrap;color:${color}" class="mono" title="${s} · ${ratio.toFixed(1)}× baseline">${s}</td>`;
+    }
+
+    /******** Daily accuracy + timing (resets at midnight) ********/
+    const ADKEY='acc_daily_v1', DTKEY='timing_daily_v1';
+    function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function loadDailyAcc(){ try{ const o=JSON.parse(localStorage.getItem(ADKEY)||'{}'); return o.date===todayStr()?o:{date:todayStr(),data:{}}; }catch{ return {date:todayStr(),data:{}}; } }
+    function recordDailyAcc(base,itemId,ok){ const o=loadDailyAcc(); const k=`${base}|${itemId}`; const r=o.data[k]||{a:0,w:0}; r.a++; if(!ok) r.w++; o.data[k]=r; localStorage.setItem(ADKEY,JSON.stringify(o)); }
+    function loadDailyTiming(){ try{ const o=JSON.parse(localStorage.getItem(DTKEY)||'{}'); return o.date===todayStr()?o:{date:todayStr(),data:{}}; }catch{ return {date:todayStr(),data:{}}; } }
+    function recordDailyTiming(drill,itemId,ms){ const o=loadDailyTiming(); const k=`${drill}|${itemId}`; const r=o.data[k]||{totalMs:0,count:0}; r.totalMs+=ms; r.count++; o.data[k]=r; localStorage.setItem(DTKEY,JSON.stringify(o)); }
+
+    /******** Drill-level stat aggregates (one pass each) ********/
+    function computeAllDrillStats(){
+      const mdata=loadMistakes(), tdata=loadTiming(), daObj=loadDailyAcc(), dtObj=loadDailyTiming();
+      const acc={}, timing={}, dailyAcc={}, dailyTiming={};
+      for(const r of Object.values(mdata)){ const d=r.drill; if(!d) continue; if(!acc[d]) acc[d]={a:0,w:0}; acc[d].a+=r.attempts||0; acc[d].w+=r.wrongs||0; }
+      for(const [k,r] of Object.entries(tdata)){ const d=k.split('|')[0]; if(!timing[d]) timing[d]={totalMs:0,count:0}; timing[d].totalMs+=r.totalMs||0; timing[d].count+=r.count||0; }
+      for(const [k,r] of Object.entries(daObj.data)){ const d=k.split('|')[0]; if(!dailyAcc[d]) dailyAcc[d]={a:0,w:0}; dailyAcc[d].a+=r.a||0; dailyAcc[d].w+=r.w||0; }
+      for(const [k,r] of Object.entries(dtObj.data)){ const d=k.split('|')[0]; if(!dailyTiming[d]) dailyTiming[d]={totalMs:0,count:0}; dailyTiming[d].totalMs+=r.totalMs||0; dailyTiming[d].count+=r.count||0; }
+      return {acc,timing,dailyAcc,dailyTiming};
     }
 
     /******** High scores ********/
@@ -755,15 +772,24 @@
     }
     function updateDrillButtons(){
       const sprint=getMode()==='sprint';
+      if(!sprint){ document.querySelectorAll('#menu [data-drill]').forEach(btn=>btn.textContent=labelFor(btn.dataset.drill)); return; }
+      const {acc,timing,dailyAcc,dailyTiming}=computeAllDrillStats();
       document.querySelectorAll('#menu [data-drill]').forEach(btn=>{
         const d=btn.dataset.drill;
-        if(sprint){
-          const best=getBest(d), today=getTodayBest(d);
-          const bStr=best>0?String(best):'—', tStr=today>0?String(today):'—';
-          btn.innerHTML=`${labelFor(d)}<span style="display:block;font-size:.78rem;opacity:.6;font-weight:400;margin-top:.15rem">Best: ${bStr} &nbsp;·&nbsp; Today: ${tStr}</span>`;
-        } else {
-          btn.textContent=labelFor(d);
-        }
+        const best=getBest(d), todayB=getTodayBest(d);
+        const a=acc[d],   accPct  = a &&a.a  ? Math.round(100-a.w/a.a*100)         : null;
+        const t=timing[d], avgMs  = t &&t.count ? t.totalMs/t.count                : null;
+        const da=dailyAcc[d],  tAccPct = da&&da.a  ? Math.round(100-da.w/da.a*100) : null;
+        const dt=dailyTiming[d],tAvgMs = dt&&dt.count ? dt.totalMs/dt.count        : null;
+        const bStr=best>0?best:'—', tStr=todayB>0?todayB:'—';
+        const aStr=accPct!==null?accPct+'%':'—',  taStr=tAccPct!==null?tAccPct+'%':'—';
+        const mStr=avgMs!==null?(avgMs/1000).toFixed(1)+'s':'—', tmStr=tAvgMs!==null?(tAvgMs/1000).toFixed(1)+'s':'—';
+        btn.innerHTML=`${labelFor(d)}<span style="display:grid;grid-template-columns:1fr 1fr;font-size:.71rem;font-weight:400;opacity:.62;gap:.06rem .5rem;margin-top:.2rem">
+          <span style="opacity:.55;font-size:.65rem">All-time</span><span style="opacity:.55;font-size:.65rem">Today</span>
+          <span>Best: ${bStr}</span><span>${tStr}</span>
+          <span>Acc: ${aStr}</span><span>${taStr}</span>
+          <span>Time: ${mStr}</span><span>${tmStr}</span>
+        </span>`;
       });
     }
 
@@ -910,7 +936,7 @@
         if(!Number.isNaN(user) && user===current.ans) ok=true;
       }
 
-      if(drill==='mult12'||drill==='addTable') recordTiming(drill,current.id,Date.now()-questionStartTime);
+      if(drill!=='pi') recordTiming(drill,current.id,Date.now()-questionStartTime);
       recordAttempt(drill,current,ok);
       if(drill==='add2') recordAddResult(current,ok);
       else if(drill==='sub2') recordSubResult(current,ok);
