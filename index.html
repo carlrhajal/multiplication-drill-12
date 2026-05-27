@@ -352,6 +352,7 @@
     const getBest=d=> parseInt(localStorage.getItem(hiscoreKey(d))||'0',10);
     const setBest=(d,v)=> localStorage.setItem(hiscoreKey(d), String(v));
     function clearScores(){ Object.keys(localStorage).forEach(k=>{ if(k.startsWith('hiscore_')||k.startsWith('hshistory_')) localStorage.removeItem(k); }); }
+    function getTodayBest(d){ const h=getHistory(d); if(!h.length) return 0; const midnight=new Date(); midnight.setHours(0,0,0,0); const since=midnight.getTime(); const sc=h.filter(e=>e.ts>=since).map(e=>e.score); return sc.length?Math.max(...sc):0; }
 
     /******** Score history ********/
     const historyKey=d=>`hshistory_${d}`;
@@ -752,7 +753,21 @@
         </span>`
       ).join('');
     }
-    radios.forEach(r=>r.addEventListener('change',()=>{ refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); }));
+    function updateDrillButtons(){
+      const sprint=getMode()==='sprint';
+      document.querySelectorAll('#menu [data-drill]').forEach(btn=>{
+        const d=btn.dataset.drill;
+        if(sprint){
+          const best=getBest(d), today=getTodayBest(d);
+          const bStr=best>0?String(best):'—', tStr=today>0?String(today):'—';
+          btn.innerHTML=`${labelFor(d)}<span style="display:block;font-size:.78rem;opacity:.6;font-weight:400;margin-top:.15rem">Best: ${bStr} &nbsp;·&nbsp; Today: ${tStr}</span>`;
+        } else {
+          btn.textContent=labelFor(d);
+        }
+      });
+    }
+
+    radios.forEach(r=>r.addEventListener('change',()=>{ refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); updateDrillButtons(); }));
 
     document.querySelectorAll('#menu [data-drill]').forEach(btn=>{
       btn.addEventListener('mouseenter',()=>{ lastHoverDrill=btn.dataset.drill; refreshMenuBestFor(lastHoverDrill); });
@@ -763,7 +778,7 @@
     openSettingsBtn.addEventListener('click',()=>{ history.pushState({view:'settings'},''); menu.hidden=true; quiz.hidden=true; settings.hidden=false; renderStats(); });
     closeSettingsBtn.addEventListener('click',()=>{ settings.hidden=true; menu.hidden=false; });
     clearStatsBtn.addEventListener('click',()=>{ clearMistakeStats(); renderStats(); });
-    clearScoresBtn.addEventListener('click',()=>{ clearScores(); renderStats(); refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); });
+    clearScoresBtn.addEventListener('click',()=>{ clearScores(); renderStats(); refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); updateDrillButtons(); });
     fltDrill.addEventListener('change',renderStats);
     fltSort.addEventListener('change',renderStats);
 
@@ -936,6 +951,7 @@
       aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
       refreshMenuBestFor(drill);
       renderSprintRecords();
+      updateDrillButtons();
       drill=null; bank=null; current=null; score=0;
     });
 
@@ -947,6 +963,7 @@
         aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
         if(drill){ refreshMenuBestFor(drill); renderSprintRecords(); }
         drill=null; bank=null; current=null; score=0;
+        updateDrillButtons();
       } else if(!settings.hidden){
         settings.hidden=true; menu.hidden=false;
       }
@@ -1114,6 +1131,10 @@
       bestDiv.textContent = `High scores — ${bests}`;
       statsContainer.appendChild(bestDiv);
     }
+
+    // initialise button stats on page load
+    updateDrillButtons();
+    renderSprintRecords();
   </script>
 </body>
 </html>
