@@ -760,7 +760,7 @@
       btn.addEventListener('click',()=>start(btn.dataset.drill));
     });
 
-    openSettingsBtn.addEventListener('click',()=>{ menu.hidden=true; quiz.hidden=true; settings.hidden=false; renderStats(); });
+    openSettingsBtn.addEventListener('click',()=>{ history.pushState({view:'settings'},''); menu.hidden=true; quiz.hidden=true; settings.hidden=false; renderStats(); });
     closeSettingsBtn.addEventListener('click',()=>{ settings.hidden=true; menu.hidden=false; });
     clearStatsBtn.addEventListener('click',()=>{ clearMistakeStats(); renderStats(); });
     clearScoresBtn.addEventListener('click',()=>{ clearScores(); renderStats(); refreshMenuBestFor(lastHoverDrill); renderSprintRecords(); });
@@ -776,6 +776,7 @@
       else if(drill==='mixed') bank=buildMixedBank();
       else bank=buildBank(drill);
 
+      history.pushState({view:'quiz',drill:sel},'');
       menu.hidden=true; settings.hidden=true; quiz.hidden=false; endpanel.innerHTML='';
       fb.textContent=''; fb.className=''; hud.hidden=false; hudDrill.textContent=labelFor(drill);
 
@@ -936,6 +937,19 @@
       refreshMenuBestFor(drill);
       renderSprintRecords();
       drill=null; bank=null; current=null; score=0;
+    });
+
+    window.addEventListener('popstate', ()=>{
+      if(!quiz.hidden){
+        flushSessionTimings();
+        if(tick){ clearInterval(tick); tick=null; }
+        quiz.hidden=true; menu.hidden=false; hud.hidden=true;
+        aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
+        if(drill){ refreshMenuBestFor(drill); renderSprintRecords(); }
+        drill=null; bank=null; current=null; score=0;
+      } else if(!settings.hidden){
+        settings.hidden=true; menu.hidden=false;
+      }
     });
 
     /******** Reference UI handlers ********/
