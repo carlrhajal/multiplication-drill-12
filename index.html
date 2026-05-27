@@ -307,31 +307,40 @@
       row.attempts++; if(!ok){ row.wrongs++; row.lastMiss=Date.now(); }
       row.text=item.text; data[idKey]=row; saveMistakes(data);
     }
-    const clearMistakeStats=()=>{ localStorage.removeItem(MKEY); localStorage.removeItem('timing_v1'); };
+    const clearMistakeStats=()=>{ localStorage.removeItem(MKEY); localStorage.removeItem('timing_v1'); localStorage.removeItem('timing_last_v1'); };
 
     /******** Response time tracking (mult12) ********/
     const TKEY='timing_v1';
+    const LKEY='timing_last_v1';
     const loadTiming=()=>{ try{ return JSON.parse(localStorage.getItem(TKEY)||'{}'); }catch{ return {}; } };
     const saveTiming=obj=> localStorage.setItem(TKEY, JSON.stringify(obj));
+    const loadLastSession=()=>{ try{ return JSON.parse(localStorage.getItem(LKEY)||'{}'); }catch{ return {}; } };
+    let sessionTimings={};
     function recordTiming(drill,itemId,ms){
-      if(ms<150||ms>25000) return; // ignore implausible times
+      if(ms<150||ms>25000) return;
+      // all-time
       const data=loadTiming();
       const key=`${drill}|${itemId}`;
       const row=data[key]||{totalMs:0,count:0};
       row.totalMs+=ms; row.count++;
       data[key]=row; saveTiming(data);
+      // current session
+      const sr=sessionTimings[itemId]||{totalMs:0,count:0};
+      sr.totalMs+=ms; sr.count++;
+      sessionTimings[itemId]=sr;
     }
-    function timingCell12(tdata,itemId){
-      const baseRow=tdata['mult12|12x1'];
-      const baseAvg=baseRow&&baseRow.count? baseRow.totalMs/baseRow.count : null;
-      const row=tdata[`mult12|${itemId}`];
-      if(!row||!row.count) return `<td style="text-align:right;color:#3a4460">—</td>`;
-      const avg=row.totalMs/row.count;
-      const avgStr=(avg/1000).toFixed(1)+'s';
-      if(!baseAvg) return `<td style="text-align:right" class="mono">${avgStr}</td>`;
-      const ratio=avg/baseAvg;
+    function flushSessionTimings(){
+      if(drill==='mult12' && Object.keys(sessionTimings).length>0)
+        localStorage.setItem(LKEY, JSON.stringify(sessionTimings));
+    }
+    function getAvgMs(data,key){ const r=data[key]; return r&&r.count? r.totalMs/r.count : null; }
+    function timingCell(avgMs,baseAvgMs){
+      if(avgMs===null) return `<td style="text-align:right;color:#3a4460">—</td>`;
+      const s=(avgMs/1000).toFixed(1)+'s';
+      if(!baseAvgMs) return `<td style="text-align:right" class="mono">${s}</td>`;
+      const ratio=avgMs/baseAvgMs;
       const color=ratio>=2.0?'var(--bad)':ratio>=1.4?'#eab308':'#6aaa6a';
-      return `<td style="text-align:right;white-space:nowrap;color:${color}" class="mono" title="Avg ${avgStr} · ${ratio.toFixed(1)}× baseline">${avgStr}</td>`;
+      return `<td style="text-align:right;white-space:nowrap;color:${color}" class="mono" title="${s} · ${ratio.toFixed(1)}× baseline">${s}</td>`;
     }
 
     /******** High scores ********/
@@ -557,11 +566,12 @@
     const tdRow = cells  => `<tr>${cells.map(c=>`<td class="mono">${c}</td>`).join('')}</tr>`;
 
     function table12(mdata){
-      const tdata=loadTiming();
-      const rows=[thRow(['12 × b','Ans','Acc','Time'])];
+      const tdata=loadTiming(), ldata=loadLastSession();
+      const baseAll=getAvgMs(tdata,'mult12|12x1'), baseLast=getAvgMs(ldata,'12x1');
+      const rows=[thRow(['12 × b','Ans','Acc','All-time','Last session'])];
       for(let b=1;b<=15;b++){
         const id=`12x${b}`;
-        rows.push(`<tr><td class="mono">12 × ${b}</td><td class="mono">${12*b}</td>${accuracyCellList(mdata,'mult12',id)}${timingCell12(tdata,id)}</tr>`);
+        rows.push(`<tr><td class="mono">12 × ${b}</td><td class="mono">${12*b}</td>${accuracyCellList(mdata,'mult12',id)}${timingCell(getAvgMs(tdata,`mult12|${id}`),baseAll)}${timingCell(getAvgMs(ldata,id),baseLast)}</tr>`);
       }
       return `<div class="card"><h4>12×</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
@@ -738,6 +748,7 @@
       drill=sel; isSprint=(getMode()==='sprint');
       if(drill==='pi'){ isSprint=false; radios.find(r=>r.value==='practice').checked=true; }
 
+      if(drill==='mult12') sessionTimings={};
       if(drill==='add2' || drill==='sub2' || drill==='pi') bank=null;
       else if(drill==='mixed') bank=buildMixedBank();
       else bank=buildBank(drill);
@@ -876,6 +887,7 @@
     }
 
     function finishSprint(){
+      flushSessionTimings();
       if(tick){ clearInterval(tick); tick=null; }
       aEl.disabled=true;
       appendHistory(drill,score);
@@ -894,6 +906,7 @@
     submitBtn.addEventListener('click', (e)=>{ e.preventDefault(); if(isSprint && timeLeft<=0) return; check(); });
 
     back.addEventListener('click', ()=>{
+      flushSessionTimings();
       if(tick){ clearInterval(tick); tick=null; }
       quiz.hidden=true; menu.hidden=false; hud.hidden=true;
       aEl.value=''; fb.textContent=''; fb.className=''; endpanel.innerHTML='';
