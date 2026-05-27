@@ -99,7 +99,7 @@
     .card tbody tr:nth-child(even){background:rgba(255,255,255,.028)}
     .card tbody tr:hover{background:rgba(59,130,246,.12)}
     .tighttable{font-size:.84rem}
-    .tighttable th,.tighttable td{padding:.12rem .26rem}
+    .tighttable th,.tighttable td{padding:.12rem .14rem}
 
     .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:#text; padding:.3rem .5rem; cursor:pointer}
 
@@ -307,7 +307,32 @@
       row.attempts++; if(!ok){ row.wrongs++; row.lastMiss=Date.now(); }
       row.text=item.text; data[idKey]=row; saveMistakes(data);
     }
-    const clearMistakeStats=()=> localStorage.removeItem(MKEY);
+    const clearMistakeStats=()=>{ localStorage.removeItem(MKEY); localStorage.removeItem('timing_v1'); };
+
+    /******** Response time tracking (mult12) ********/
+    const TKEY='timing_v1';
+    const loadTiming=()=>{ try{ return JSON.parse(localStorage.getItem(TKEY)||'{}'); }catch{ return {}; } };
+    const saveTiming=obj=> localStorage.setItem(TKEY, JSON.stringify(obj));
+    function recordTiming(drill,itemId,ms){
+      if(ms<150||ms>25000) return; // ignore implausible times
+      const data=loadTiming();
+      const key=`${drill}|${itemId}`;
+      const row=data[key]||{totalMs:0,count:0};
+      row.totalMs+=ms; row.count++;
+      data[key]=row; saveTiming(data);
+    }
+    function timingCell12(tdata,itemId){
+      const baseRow=tdata['mult12|12x1'];
+      const baseAvg=baseRow&&baseRow.count? baseRow.totalMs/baseRow.count : null;
+      const row=tdata[`mult12|${itemId}`];
+      if(!row||!row.count) return `<td style="text-align:right;color:#3a4460">—</td>`;
+      const avg=row.totalMs/row.count;
+      const avgStr=(avg/1000).toFixed(1)+'s';
+      if(!baseAvg) return `<td style="text-align:right" class="mono">${avgStr}</td>`;
+      const ratio=avg/baseAvg;
+      const color=ratio>=2.0?'var(--bad)':ratio>=1.4?'#eab308':'#6aaa6a';
+      return `<td style="text-align:right;white-space:nowrap;color:${color}" class="mono" title="Avg ${avgStr} · ${ratio.toFixed(1)}× baseline">${avgStr}</td>`;
+    }
 
     /******** High scores ********/
     const hiscoreKey=d=>`hiscore_${d}`;
@@ -509,14 +534,14 @@
       const row=mdata[`${drillId}|${itemId}`];
       if(!row||!row.attempts) return `<td style="text-align:right"><span class="acc-dot" style="background:#3a4460" title="No data yet"></span><span style="font-size:.8rem;color:#3a4460">—</span></td>`;
       const pct=Math.round(100-(row.wrongs/row.attempts)*100);
-      const color=pct>=80?'var(--good)':pct>=50?'#d97706':'var(--bad)';
+      const color=pct>=90?'var(--good)':pct>=60?'#eab308':'var(--bad)';
       return `<td style="text-align:right;white-space:nowrap"><span class="acc-dot" style="background:${color}" title="${pct}% (${row.attempts-row.wrongs}/${row.attempts})"></span><span style="font-size:.8rem;color:${color}">${pct}%</span></td>`;
     }
     function accuracyStyleMatrix(mdata, drillId, itemId){
       const row=mdata[`${drillId}|${itemId}`];
       if(!row||!row.attempts) return '';
       const pct=Math.round(100-(row.wrongs/row.attempts)*100);
-      return pct>=80?'background:rgba(22,163,74,.18)':pct>=50?'background:rgba(217,119,6,.18)':'background:rgba(239,68,68,.18)';
+      return pct>=90?'background:rgba(22,163,74,.18)':pct>=60?'background:rgba(234,179,8,.18)':'background:rgba(239,68,68,.18)';
     }
 
     /******** Reference (compact answer sheets) ********/
@@ -532,8 +557,12 @@
     const tdRow = cells  => `<tr>${cells.map(c=>`<td class="mono">${c}</td>`).join('')}</tr>`;
 
     function table12(mdata){
-      const rows=[thRow(['12 × b','Ans',''])];
-      for(let b=1;b<=15;b++) rows.push(`<tr><td class="mono">12 × ${b}</td><td class="mono">${12*b}</td>${accuracyCellList(mdata,'mult12',`12x${b}`)}</tr>`);
+      const tdata=loadTiming();
+      const rows=[thRow(['12 × b','Ans','Acc','Time'])];
+      for(let b=1;b<=15;b++){
+        const id=`12x${b}`;
+        rows.push(`<tr><td class="mono">12 × ${b}</td><td class="mono">${12*b}</td>${accuracyCellList(mdata,'mult12',id)}${timingCell12(tdata,id)}</tr>`);
+      }
       return `<div class="card"><h4>12×</h4><table class="tighttable">${rows.join('')}</table></div>`;
     }
     function table16(mdata){
@@ -669,6 +698,7 @@
 
     let drill=null, bank=null, current=null, awaiting=false, isSprint=false;
     let timeLeft=SPRINT_SECONDS, tick=null, score=0, lastHoverDrill=null;
+    let questionStartTime=0;
 
     function refreshMenuBestFor(d){
       if(getMode()==='sprint' && d){ bestBadge.hidden=false; bestMenu.textContent=getBest(d); }
@@ -763,6 +793,7 @@
       qEl.textContent=current.text;
       aEl.disabled=false; aEl.value=''; aEl.focus({preventScroll:true});
       fb.textContent=''; fb.className='';
+      questionStartTime=Date.now();
     }
 
     function checkPi(){
@@ -826,6 +857,7 @@
         if(!Number.isNaN(user) && user===current.ans) ok=true;
       }
 
+      if(drill==='mult12') recordTiming('mult12',current.id,Date.now()-questionStartTime);
       recordAttempt(drill,current,ok);
       if(drill==='add2') recordAddResult(current,ok);
       else if(drill==='sub2') recordSubResult(current,ok);
