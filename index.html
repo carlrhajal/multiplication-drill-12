@@ -266,7 +266,7 @@
   </div>
 
   <script>
-    const VERSION='v26.05.27-1';
+    const VERSION='v26.05.27-2';
     document.getElementById('versionBadge').textContent=VERSION;
 
     /******** Helpers & constants ********/
@@ -784,11 +784,18 @@
         const bStr=best>0?best:'—', tStr=todayB>0?todayB:'—';
         const aStr=accPct!==null?accPct+'%':'—',  taStr=tAccPct!==null?tAccPct+'%':'—';
         const mStr=avgMs!==null?(avgMs/1000).toFixed(1)+'s':'—', tmStr=tAvgMs!==null?(tAvgMs/1000).toFixed(1)+'s':'—';
-        btn.innerHTML=`${labelFor(d)}<span style="display:grid;grid-template-columns:1fr 1fr;font-size:.71rem;font-weight:400;opacity:.62;gap:.06rem .5rem;margin-top:.2rem">
-          <span style="opacity:.55;font-size:.65rem">All-time</span><span style="opacity:.55;font-size:.65rem">Today</span>
-          <span>Best: ${bStr}</span><span>${tStr}</span>
-          <span>Acc: ${aStr}</span><span>${taStr}</span>
-          <span>Time: ${mStr}</span><span>${tmStr}</span>
+        const badge=(v,bg)=>`<span style="background:${bg};border-radius:4px;padding:.03rem .3rem;font-weight:700;min-width:1.6rem;display:inline-block;text-align:center">${v}</span>`;
+        btn.innerHTML=`${labelFor(d)}<span style="display:block;font-size:.71rem;font-weight:400;margin-top:.2rem;line-height:1.7;opacity:.75">
+          <span style="display:flex;align-items:center;gap:.3rem">
+            <span style="font-size:.62rem;opacity:.55;min-width:2.8rem">All:</span>
+            ${badge(bStr,'rgba(59,130,246,.3)')}
+            <span>${aStr}</span><span style="opacity:.35">·</span><span>${mStr}</span>
+          </span>
+          <span style="display:flex;align-items:center;gap:.3rem">
+            <span style="font-size:.62rem;opacity:.55;min-width:2.8rem">Today:</span>
+            ${badge(tStr,'rgba(250,204,21,.25)')}
+            <span>${taStr}</span><span style="opacity:.35">·</span><span>${tmStr}</span>
+          </span>
         </span>`;
       });
     }
