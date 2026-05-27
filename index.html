@@ -268,7 +268,7 @@
   </div>
 
   <script>
-    const VERSION='v26.05.27-6';
+    const VERSION='v26.05.27-7';
     document.getElementById('versionBadge').textContent=VERSION;
 
     /******** Helpers & constants ********/
@@ -722,26 +722,29 @@
     }
 
     function tablePrimes(mdata){
-      const PS=new Set([2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]);
-      let html='<div class="card" style="width:100%"><h4>Primes 1–100 <span style="font-weight:400;font-size:.78rem;opacity:.6">(bold = prime · drill skips ×2 and ×5 · colors = your accuracy)</span></h4>';
+      // All 25 primes up to 100
+      const PRIMES_100=[2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97];
+      // Drilled = primes ≤50 that are not multiples of 2 or 5
+      const drilled=new Set(PRIMES_100.filter(p=>p<=50&&p%2!==0&&p%5!==0));
+      let html='<div class="card" style="width:100%">';
+      html+='<h4>Primes 1–100 <span style="font-weight:400;font-size:.78rem;opacity:.6">(25 primes · colors = accuracy on drilled ones)</span></h4>';
       html+='<table class="tighttable"><tbody>';
-      for(let row=0;row<10;row++){
+      // 5 columns × 5 rows
+      for(let row=0;row<5;row++){
         html+='<tr>';
-        for(let col=0;col<10;col++){
-          const n=row*10+col+1;
-          const isPrime=PS.has(n);
-          const style=n<=50?accuracyStyleMatrix(mdata,'primes',`p${n}`):'';
-          html+=`<td class="mono"${style?` style="${style}"`:''}>${isPrime?`<b>${n}</b>`:n}</td>`;
+        for(let col=0;col<5;col++){
+          const p=PRIMES_100[row*5+col];
+          const style=drilled.has(p)?accuracyStyleMatrix(mdata,'primes',`p${p}`):'';
+          html+=`<td class="mono" style="font-weight:700;${style}">${p}</td>`;
         }
         html+='</tr>';
       }
       html+='</tbody></table>';
-      // legend
       html+=`<div style="display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.35rem;font-size:.78rem;opacity:.7">
         <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(22,163,74,.25);vertical-align:middle;margin-right:3px"></span>≥90%</span>
         <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(234,179,8,.25);vertical-align:middle;margin-right:3px"></span>60–89%</span>
         <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:rgba(239,68,68,.25);vertical-align:middle;margin-right:3px"></span>&lt;60%</span>
-        <span style="opacity:.55">No color = no data yet</span>
+        <span style="opacity:.55">No color = not drilled</span>
       </div>`;
       html+='</div>';
       return html;
