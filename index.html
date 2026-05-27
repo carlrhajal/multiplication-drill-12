@@ -90,17 +90,20 @@
     .sheet h3{margin:0 0 .5rem}
 
     /* COMPACT reference visuals */
-    .refgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(128px,1fr)); gap:.35rem}
-    .card{background:#0f1a30; border:1px solid #223055; border-radius:10px; padding:.4rem .5rem}
-    .card h4{margin:.05rem 0 .2rem; font-size:.95rem; color:#d6dbe6}
-    .card table{font-size:.9rem}
-    .card th,.card td{padding:.3rem .45rem; border-bottom:1px solid #1b2746}
-    .card tbody tr:hover{background:#0c1430}
-    .tighttable{font-size:.88rem}
+    .refgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:.2rem}
+    .card{background:#0f1a30; border:1px solid #223055; border-radius:10px; padding:.3rem .4rem}
+    .card h4{margin:0 0 .12rem; font-size:.86rem; font-weight:700; letter-spacing:.3px; color:#d6dbe6; text-transform:uppercase}
+    .card table{font-size:.88rem; width:100%}
+    .card th,.card td{padding:.16rem .32rem; border-bottom:1px solid rgba(27,39,70,.7)}
+    .card tr:last-child td{border-bottom:none}
+    .card tbody tr:nth-child(even){background:rgba(255,255,255,.028)}
+    .card tbody tr:hover{background:rgba(59,130,246,.12)}
+    .tighttable{font-size:.84rem}
+    .tighttable th,.tighttable td{padding:.12rem .26rem}
 
     .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:#text; padding:.3rem .5rem; cursor:pointer}
 
-    .acc-dot{display:inline-block;width:8px;height:8px;border-radius:50%;vertical-align:middle;margin-right:3px}
+    .acc-dot{display:inline-block;width:7px;height:7px;border-radius:50%;vertical-align:middle;margin-right:2px}
     .sprint-rec-btn{cursor:pointer;transition:opacity .15s}
     .sprint-rec-btn:hover{opacity:.8}
 
