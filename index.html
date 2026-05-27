@@ -99,7 +99,8 @@
     .card tbody tr:nth-child(even){background:rgba(255,255,255,.028)}
     .card tbody tr:hover{background:rgba(59,130,246,.12)}
     .tighttable{font-size:.84rem}
-    .tighttable th,.tighttable td{padding:.12rem .14rem}
+    .tighttable th,.tighttable td{padding:.12rem .14rem; text-align:center}
+    .tighttable td:first-child{text-align:left}
 
     .close{position:absolute; top:8px; right:8px; background:#0f1a30; border:1px solid #223055; border-radius:10px; color:#text; padding:.3rem .5rem; cursor:pointer}
 
@@ -335,12 +336,12 @@
     }
     function getAvgMs(data,key){ const r=data[key]; return r&&r.count? r.totalMs/r.count : null; }
     function timingCell(avgMs,baseAvgMs){
-      if(avgMs===null) return `<td style="text-align:right;color:#3a4460">—</td>`;
+      if(avgMs===null) return `<td style="text-align:center;color:#3a4460">—</td>`;
       const s=(avgMs/1000).toFixed(1)+'s';
-      if(!baseAvgMs) return `<td style="text-align:right" class="mono">${s}</td>`;
+      if(!baseAvgMs) return `<td style="text-align:center" class="mono">${s}</td>`;
       const ratio=avgMs/baseAvgMs;
       const color=ratio>=2.0?'var(--bad)':ratio>=1.4?'#eab308':'#6aaa6a';
-      return `<td style="text-align:right;white-space:nowrap;color:${color}" class="mono" title="${s} · ${ratio.toFixed(1)}× baseline">${s}</td>`;
+      return `<td style="text-align:center;white-space:nowrap;color:${color}" class="mono" title="${s} · ${ratio.toFixed(1)}× baseline">${s}</td>`;
     }
 
     /******** High scores ********/
@@ -541,10 +542,10 @@
     /******** Accuracy helpers for reference tables ********/
     function accuracyCellList(mdata, drillId, itemId){
       const row=mdata[`${drillId}|${itemId}`];
-      if(!row||!row.attempts) return `<td style="text-align:right"><span class="acc-dot" style="background:#3a4460" title="No data yet"></span><span style="font-size:.8rem;color:#3a4460">—</span></td>`;
+      if(!row||!row.attempts) return `<td style="text-align:center"><span class="acc-dot" style="background:#3a4460" title="No data yet"></span><span style="font-size:.8rem;color:#3a4460">—</span></td>`;
       const pct=Math.round(100-(row.wrongs/row.attempts)*100);
       const color=pct>=90?'var(--good)':pct>=60?'#eab308':'var(--bad)';
-      return `<td style="text-align:right;white-space:nowrap"><span class="acc-dot" style="background:${color}" title="${pct}% (${row.attempts-row.wrongs}/${row.attempts})"></span><span style="font-size:.8rem;color:${color}">${pct}%</span></td>`;
+      return `<td style="text-align:center;white-space:nowrap"><span class="acc-dot" style="background:${color}" title="${pct}% (${row.attempts-row.wrongs}/${row.attempts})"></span><span style="font-size:.8rem;color:${color}">${pct}%</span></td>`;
     }
     function accuracyStyleMatrix(mdata, drillId, itemId){
       const row=mdata[`${drillId}|${itemId}`];
