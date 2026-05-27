@@ -127,7 +127,7 @@
   <div class="topbar panel" style="display:flex; gap:12px; align-items:center;">
     <div>
       <h1>Math Drills</h1>
-      <div class="sub">Dark mode • adaptive practice • sprint • stats</div>
+      <div class="sub">Dark mode • adaptive practice • sprint • stats <span id="versionBadge" style="margin-left:.5rem;font-size:.78rem;opacity:.5"></span></div>
     </div>
     <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
       <button id="openSettings" class="ghost">⚙️ Settings & Stats</button>
@@ -266,6 +266,9 @@
   </div>
 
   <script>
+    const VERSION='v26.05.27-1';
+    document.getElementById('versionBadge').textContent=VERSION;
+
     /******** Helpers & constants ********/
     const rand=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
     const SPRINT_SECONDS=60;
